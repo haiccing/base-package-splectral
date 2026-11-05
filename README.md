@@ -5,7 +5,7 @@ The Splectral platform: the server, its shell, the contract and model, transport
 A package: self-contained, its code ready to run, laid out as it is installed. Written by the package manager (`pear-full-square/pkgm-base-manager`) from the development repository; do not edit here.
 
 - requires: `haiccing/base-package-p2p`
-- hash: `c64df39b1ee2445a373612f45d4a8b5a45c77770e636753d241b8c7ba3ca9a8c`
+- hash: `a43e93018c67806efc97305f0494bf855a60d09e7202faf31e189f834fbe7da6`
 
 ## Holds
 
