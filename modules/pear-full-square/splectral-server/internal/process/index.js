@@ -5,10 +5,10 @@ import os from 'bare-os'
 import { spawnSync } from 'bare-subprocess'
 import { existsSync, readFileSync, writeFileSync, renameSync, rmSync } from 'bare-fs'
 import { join } from 'bare-path'
-import { serve, PORT } from '../serve/index.js'
+import { serve, PORT, ROOT } from '../serve/index.js'
 
 // Its state, in the mrepo's own folder while it runs: { pid, url, port,
-// outbox, started }.
+// outbox, root, started }.
 export const STATE = 'splectral.json'
 
 // catch: no such process: not alive
@@ -30,18 +30,19 @@ export function stateOf (dir) {
 // SIGINT), its mrepo's folder is gone or its mrepo's runtime has ended.
 //   --dir=<the mrepo's folder>   where its state is written
 //   --outbox=<folder>            the records it follows
+//   --root=<unique URI>          the mrepo whose outbox that is: local/boot when none
 //   --port=<n>                   4400 when none; another when it is taken
 //   --runtime=<pid>              the mrepo's runtime: ended with it
 export async function program (argv) {
   const arg = name => argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3)
   const dir = arg('dir')
   const outbox = arg('outbox')
-  if (!dir || !outbox) throw new Error('--dir=<the mrepo\'s folder> --outbox=<the folder to follow> [--port=<n>] [--runtime=<pid>]')
+  if (!dir || !outbox) throw new Error('--dir=<the mrepo\'s folder> --outbox=<the folder to follow> [--root=<unique URI>] [--port=<n>] [--runtime=<pid>]')
   const runtime = arg('runtime') ? Number(arg('runtime')) : null
-  const s = await serve({ outbox, port: arg('port') === undefined ? PORT : Number(arg('port')) })
+  const s = await serve({ outbox, root: arg('root') ?? ROOT, port: arg('port') === undefined ? PORT : Number(arg('port')) })
   // its state, written whole and renamed into place
   const file = join(dir, STATE)
-  writeFileSync(`${file}.new`, JSON.stringify({ pid: process.pid, url: s.url, port: s.port, outbox, started: new Date().toISOString() }) + '\n')
+  writeFileSync(`${file}.new`, JSON.stringify({ pid: process.pid, url: s.url, port: s.port, outbox, root: s.root, started: new Date().toISOString() }) + '\n')
   renameSync(`${file}.new`, file)
   let closing = null
   const close = () => (closing ??= s.close().then(() => rmSync(file, { force: true })))
@@ -58,8 +59,8 @@ export async function program (argv) {
 // the caller), and waited for until it has written its state. -> its
 // state; null when it did not come up.
 //   program   what Bare is started with: the package's bundle, or cli.js
-export async function launch ({ program: file, dir, outbox, port = PORT, runtime = null, bare = process.execPath, wait = 10000 }) {
-  const args = [file, `--dir=${dir}`, `--outbox=${outbox}`, `--port=${port}`, ...(runtime ? [`--runtime=${runtime}`] : [])]
+export async function launch ({ program: file, dir, outbox, root = ROOT, port = PORT, runtime = null, bare = process.execPath, wait = 10000 }) {
+  const args = [file, `--dir=${dir}`, `--outbox=${outbox}`, `--root=${root}`, `--port=${port}`, ...(runtime ? [`--runtime=${runtime}`] : [])]
   rmSync(join(dir, STATE), { force: true })
   const r = spawnSync('sh', ['-c', 'if command -v setsid >/dev/null 2>&1; then setsid "$@" </dev/null >/dev/null 2>&1 & else "$@" </dev/null >/dev/null 2>&1 & fi', 'sh', bare, ...args], { stdio: 'ignore' })
   if (r.status !== 0) return null

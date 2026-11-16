@@ -21,12 +21,15 @@ export async function start (exec, { args = [] } = {}, { program = null } = {}) 
   // of the install ends as a completed record.
   const work = exec.runtime.work
   if (!work) throw new Error('no work folder in the context: no root mrepo to follow')
-  const outbox = join(viewOf(work, setting(work).name), OUTBOX)
+  const name = setting(work).name
+  const outbox = join(viewOf(work, name), OUTBOX)
+  // (the root mrepo's unique URI: in the swarm this mrepo is in)
+  const root = `${typeof exec.runtime.uri === 'string' && exec.runtime.uri.includes('/') ? exec.runtime.uri.split('/')[0] : 'local'}/${name}`
   if (!existsSync(outbox)) throw new Error(`nothing to follow: ${outbox} (the root mrepo's outbox folder)`)
   const file = program ?? join(dir, 'packages', `${PACKAGE}.bundle`)
   if (!existsSync(file)) throw new Error(`no server to start: ${PACKAGE} is not among the mrepo's packages`)
   // Its own process, ended with this mrepo's runtime.
-  const s = await exec.step('server', r => ({ url: r?.url ?? null, pid: r?.pid ?? null }), () => launch({ program: file, dir, outbox, port, runtime: process.pid }))
+  const s = await exec.step('server', r => ({ url: r?.url ?? null, pid: r?.pid ?? null }), () => launch({ program: file, dir, outbox, root, port, runtime: process.pid }))
   if (!s) throw new Error('its server did not start')
   exec.log('info', 'started', { url: s.url, outbox })
   return { splectral: 'started', url: s.url, pid: s.pid, outbox }

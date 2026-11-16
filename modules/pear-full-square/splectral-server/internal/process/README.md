@@ -6,8 +6,8 @@ Splectral's server as its own process: the program, started, its state read, end
 
 - `program(argv)`: the server run in this process until it is ended.
   `--dir=<the mrepo's folder>`, `--outbox=<the folder to follow>`,
-  `--port=<n>`, `--runtime=<pid>`.
-- `launch({ program, dir, outbox, port, runtime, bare, wait })`: the
+  `--root=<unique URI>`, `--port=<n>`, `--runtime=<pid>`.
+- `launch({ program, dir, outbox, root, port, runtime, bare, wait })`: the
   program started as its own process. `program` is what Bare is started
   with: the package's bundle, or this module's `cli.js`.
 - `stateOf(dir)`: the state of the server of the mrepo at `dir`.
@@ -18,7 +18,7 @@ Splectral's server as its own process: the program, started, its state read, end
 - `program`: resolves when the server has closed.
 - `launch`: the server's state once it listens; `null` when it did not
   come up within `wait` (ten seconds).
-- `stateOf`: `{ pid, url, port, outbox, started }`; `null` when none
+- `stateOf`: `{ pid, url, port, outbox, root, started }`; `null` when none
   runs: no state, or one left by a process that is gone.
 - `end`: `{ pid, how }`, `how` being `SIGTERM` or `SIGKILL`; `null`
   when none was running.

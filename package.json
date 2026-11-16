@@ -1,6 +1,6 @@
 {
   "name": "base-package-splectral",
-  "description": "Package: Splectral, the commands of an install shown in a browser as they complete; an mrepo of its own beside the host.",
+  "description": "Package: Splectral, an install and its commands shown in a browser as they complete; an mrepo of its own beside the host.",
   "private": true,
   "license": "MIT",
   "type": "module",

@@ -1,7 +1,7 @@
 {
   "name": "splectral-server",
-  "version": "0.3.0",
-  "description": "Module: Splectral's server on an mrepo, the commands of an install shown in a browser as they complete.",
+  "version": "0.3.1",
+  "description": "Module: Splectral's server on an mrepo, an install and its commands shown in a browser as they complete.",
   "type": "module",
   "main": "index.js",
   "scripts": {

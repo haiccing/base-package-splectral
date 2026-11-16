@@ -16,7 +16,7 @@ modules test, `/test/modules`.
 | [pear-full-square/mycelium-value-json/](pear-full-square/mycelium-value-json/) | An encoding, as a handler: one value to bytes and back, as JSON |
 | [pear-full-square/mycelium-xpath/](pear-full-square/mycelium-xpath/) | Navigate a tree by path, generic |
 | [pear-full-square/pkgm-base-check/](pear-full-square/pkgm-base-check/) | Module: the checks a package runs on itself, its code against the code rules, the integrity of its mrepo side and its own structure. |
-| [pear-full-square/splectral-server/](pear-full-square/splectral-server/) | Module: Splectral's server on an mrepo, the commands of an install shown in a browser as they complete. |
+| [pear-full-square/splectral-server/](pear-full-square/splectral-server/) | Module: Splectral's server on an mrepo, an install and its commands shown in a browser as they complete. |
 
 The third-party code: `node_modules/`, 183 modules for linux-x64, each
 with its version, licence and source in [third-party.json](third-party.json).

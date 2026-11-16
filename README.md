@@ -1,13 +1,13 @@
 # base-package-splectral
 
-Splectral: the commands of an install shown in a browser as they complete, from an mrepo of its own beside the host.
+Splectral: an install and its commands shown in a browser as they complete, from an mrepo of its own beside the host.
 
 Splectral is for seeing a running system. Deployed by the boot mrepo
 beside the host, the Splectral mrepo runs a server once it is started.
 The server follows the boot mrepo's outbox folder, where every command
 of the install ends as a completed record, and serves one page: the
-commands, the newest first; a line opened shows its record whole. It
-reads only: it sends no command.
+install as a tree, and the commands, the newest first. It reads only:
+it sends no command.
 
 | | |
 |---|---|
@@ -61,6 +61,16 @@ The service's `start` and `stop` do the first two by their hooks; the
 commands are for a server on another port, or started again.
 
 ## What it shows
+
+The install: the mrepos as a tree, each with its service state; a
+swarm's nodes under their swarm, a swarm node as one node with its
+container's state. It is what the commands made: folded from their
+records, not asked of the mrepos, so a runtime or a container that
+ended without a command is not seen.
+
+The commands: a line each, with when it completed, the mrepos it was
+sent on to, its result and how long it took; a line opened shows its
+record whole, its log in it.
 
 Every command that comes in through the boot mrepo: what a terminal
 sends, on this machine. A command the mrepos send among themselves (a

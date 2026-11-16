@@ -1,6 +1,6 @@
 # page
 
-The one page Splectral serves: the commands of the install, the newest first.
+The one page Splectral serves: the install as a tree, and its commands, the newest first.
 
 ## Signature
 
@@ -10,6 +10,10 @@ The one page Splectral serves: the commands of the install, the newest first.
 
 - One file's worth of HTML, CSS and JavaScript, nothing loaded from
   elsewhere, no build step.
+- The install: its mrepos a tree, from `/structure`, drawn again when
+  the stream says it changed. A node: its name, its unique URI, its
+  service state; a swarm's nodes under their swarm, each with its
+  container's state. A state is said in words, its colour beside it.
 - It asks `/records` for the lines so far, then listens on `/stream`.
   A line: when it completed, the command, the mrepos it went through,
   its result (an error with what it said), its milliseconds.

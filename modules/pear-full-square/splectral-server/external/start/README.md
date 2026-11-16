@@ -5,7 +5,8 @@ Starts Splectral's server: the page served, the root mrepo's outbox folder follo
 The server is its own process, started from the package's bundle in the
 mrepo's `packages/`. It follows the outbox folder of the install's root
 mrepo, the one the work folder's setting names: every command of the
-install ends there as a completed record.
+install ends there as a completed record. It is told that mrepo's
+unique URI: the root of the structure it shows.
 
 ## Signature
 

@@ -1,6 +1,7 @@
 // page: the one page Splectral serves (README.md beside it). Plain HTML,
-// CSS and JavaScript, nothing loaded from elsewhere: the commands of the
-// install, the newest first, each a line; a line opened shows its record.
+// CSS and JavaScript, nothing loaded from elsewhere: the install, its
+// mrepos a tree, each with its state; and its commands, the newest first,
+// each a line; a line opened shows its record.
 export const PAGE = `<!doctype html>
 <html lang="en">
 <head>
@@ -8,9 +9,9 @@ export const PAGE = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Splectral</title>
 <style>
-  :root { --bg: #f7f6f2; --panel: #ffffff; --ink: #1c1b18; --soft: #6b675e; --line: #e2dfd6; --ok: #2f7d4f; --bad: #b3372a; --mark: #efece3; --accent: #3b5b8c; }
+  :root { --bg: #f7f6f2; --panel: #ffffff; --ink: #1c1b18; --soft: #6b675e; --line: #e2dfd6; --ok: #2f7d4f; --warn: #8a6410; --bad: #b3372a; --mark: #efece3; --accent: #3b5b8c; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #15161a; --panel: #1d1f25; --ink: #e9e7e1; --soft: #9a978e; --line: #2c2f38; --ok: #6cc08b; --bad: #ee8275; --mark: #262932; --accent: #8fb0e6; }
+    :root { --bg: #15161a; --panel: #1d1f25; --ink: #e9e7e1; --soft: #9a978e; --line: #2c2f38; --ok: #6cc08b; --warn: #d9b25c; --bad: #ee8275; --mark: #262932; --accent: #8fb0e6; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -22,10 +23,21 @@ export const PAGE = `<!doctype html>
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--soft); margin-right: 6px; }
   .dot.live { background: var(--ok); }
   main { padding: 12px 20px 40px; }
+  h2 { margin: 18px 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--soft); }
+  h2:first-child { margin-top: 4px; }
+  .tree { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 0; }
+  .node { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; padding: 5px 12px; }
+  .node .name { font-weight: 600; }
+  .node .uri { color: var(--soft); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+  .node.group .name { font-weight: 500; color: var(--soft); }
+  .badge { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--soft); white-space: nowrap; }
+  .badge.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+  .badge.half { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .node.fresh { animation: fresh 1.6s ease-out; }
   .from { color: var(--soft); font-size: 12px; margin-bottom: 10px; overflow-wrap: anywhere; }
   .empty { color: var(--soft); padding: 24px 0; }
   .scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
-  table { border-collapse: collapse; width: 100%; min-width: 640px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
   th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--soft); }
   tbody tr.line { cursor: pointer; }
@@ -34,7 +46,7 @@ export const PAGE = `<!doctype html>
   td.time, td.ms { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--soft); }
   td.ms { text-align: right; }
   th.ms { text-align: right; }
-  td.command { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; }
+  td.command { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; min-width: 20em; }
   td.through { color: var(--soft); white-space: nowrap; }
   td.ok, td.bad { min-width: 9em; }
   .ok { color: var(--ok); font-weight: 600; }
@@ -44,16 +56,19 @@ export const PAGE = `<!doctype html>
   pre { margin: 0; padding: 12px 14px; max-height: 420px; overflow: auto; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
   tr.fresh td { animation: fresh 1.6s ease-out; }
   @keyframes fresh { from { background: color-mix(in srgb, var(--accent) 22%, transparent); } to { background: transparent; } }
-  @media (prefers-reduced-motion: reduce) { tr.fresh td { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { tr.fresh td, .node.fresh { animation: none; } }
 </style>
 </head>
 <body>
 <header>
   <h1>Splectral</h1>
-  <span class="what">the commands of this install, as they complete</span>
+  <span class="what">this install, and its commands as they complete</span>
   <span class="state"><span class="dot" id="dot"></span><span id="live">connecting</span> &middot; <b id="count">0</b> commands</span>
 </header>
 <main>
+  <h2>the install</h2>
+  <div class="tree" id="tree"></div>
+  <h2>its commands</h2>
   <div class="from" id="from"></div>
   <div class="empty" id="empty">No command yet. Send one with haicc and it shows here.</div>
   <div class="scroll" id="scroll" hidden>
@@ -97,6 +112,34 @@ export const PAGE = `<!doctype html>
     document.getElementById('empty').hidden = true
     document.getElementById('scroll').hidden = false
   }
+  // the install: its mrepos, a tree; a swarm's nodes under their swarm
+  function badge (cls, text) { var b = document.createElement('span'); b.className = 'badge' + (cls ? ' ' + cls : ''); b.textContent = text; return b }
+  function row (depth, cls) { var d = document.createElement('div'); d.className = 'node' + (cls ? ' ' + cls : ''); d.style.paddingLeft = (12 + depth * 22) + 'px'; return d }
+  function span (cls, text) { var e = document.createElement('span'); e.className = cls; e.textContent = text; return e }
+  function tree (structure) {
+    var box = document.getElementById('tree')
+    box.textContent = ''
+    var swarms = {}
+    var deeper = {}
+    structure.nodes.forEach(function (n) {
+      var depth = n.depth + (deeper[n.parent] || 0)
+      var names = n.at.split('/')
+      var swarm = names.length === 3 && names[0] === 'swarms' ? names[1] : null
+      if (swarm) {
+        if (swarms[n.parent] !== swarm) { swarms[n.parent] = swarm; var g = row(depth, 'group'); g.appendChild(span('name', 'swarm ' + swarm)); box.appendChild(g) }
+        depth++
+      }
+      deeper[n.uri] = depth - n.depth
+      var d = row(depth, n.uri === structure.changed ? 'fresh' : '')
+      d.appendChild(span('name', n.parent === null ? n.uri.split('/').pop() : n.at.split('/').pop()))
+      d.appendChild(span('uri', n.uri))
+      if (n.parent === null) d.appendChild(badge('', 'the root'))
+      else d.appendChild(badge(n.service === 'started' ? 'on' : n.service === 'initialised' ? 'half' : '', n.service || 'deployed'))
+      if (n.container) d.appendChild(badge(n.container.state === 'running' ? 'on' : n.container.state === 'exited' ? 'half' : '', 'container ' + n.container.state + (n.container.service ? ', ' + n.container.service : '')))
+      box.appendChild(d)
+    })
+  }
+  fetch('/structure').then(function (r) { return r.json() }).then(tree)
   function live (on) { document.getElementById('dot').className = 'dot' + (on ? ' live' : ''); document.getElementById('live').textContent = on ? 'live' : 'not connected' }
   fetch('/records').then(function (r) { return r.json() }).then(function (all) {
     document.getElementById('from').textContent = 'following ' + all.outbox
@@ -105,6 +148,7 @@ export const PAGE = `<!doctype html>
     stream.onopen = function () { live(true) }
     stream.onerror = function () { live(false) }
     stream.onmessage = function (m) { add(JSON.parse(m.data), true) }
+    stream.addEventListener('structure', function (m) { tree(JSON.parse(m.data)) })
   })
 </script>
 </body>

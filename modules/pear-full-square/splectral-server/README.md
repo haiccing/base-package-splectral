@@ -1,18 +1,18 @@
 # splectral-server
 
-Splectral's server on an mrepo: the commands of an install shown in a browser as they complete.
+Splectral's server on an mrepo: an install and its commands shown in a browser as they complete.
 
 Splectral is for seeing a running system. This is its first step on the
 mrepos: one page, one subscription. A Splectral mrepo is deployed
 beside the host; started, it runs a server that follows the root
 mrepo's outbox folder, where every command of the install ends as a
-completed record. The page lists them, the newest first; a line opened
-shows its record whole. Offered by `haiccing/base-package-splectral`.
+completed record. The page shows the install as a tree and lists the
+commands, the newest first. Offered by `haiccing/base-package-splectral`.
 
 | | |
 |---|---|
 | [external/](external/) | the splectral protocol's actions |
-| [internal/](internal/) | the server, the records, the page, the server's process |
+| [internal/](internal/) | the server, the records, the structure, the page, the server's process |
 | [test/](test/) | its tests |
 
 `cli.js` is the server as a program: what `start` starts.
@@ -27,6 +27,11 @@ haicc splectral splectral/stop
 ```
 
 ## The page
+
+The install, as its commands made it: its mrepos a tree, each with its
+service state; a swarm's nodes under their swarm, a swarm node one node
+with its container's state beside its own. It is folded from the
+records: nothing is asked of the mrepos.
 
 A line a command, whichever terminal sent it: when it completed, the
 command as typed, the mrepos it was sent on to, its result (an error
@@ -43,7 +48,8 @@ free one. Read only: `GET`.
 | `/` | the page |
 | `/records` | `{ outbox, records }`: the lines so far, the oldest first, the last 500 |
 | `/record/<key>` | one record whole, as its folder holds it |
-| `/stream` | each new line as it arrives (Server-Sent Events) |
+| `/structure` | `{ root, nodes }`: the install's mrepos, a tree, each with its state |
+| `/stream` | each new line as it arrives, and the structure when it changed (Server-Sent Events) |
 
 ## Rules
 
@@ -63,5 +69,5 @@ itself; `start` takes a port, optional.
 
 ## Tests
 
-- `npm test`: a record summed up, a folder followed, the server asked
-  over HTTP, the program started as a process and ended, the actions.
+- `npm test`: a record summed up, a folder followed, the structure
+  folded, the server asked over HTTP, the program started as a process and ended, the actions.

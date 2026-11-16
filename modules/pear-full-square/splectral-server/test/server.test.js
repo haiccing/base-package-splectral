@@ -11,7 +11,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, renameSync, rmSync, existsSync }
 import { join, dirname } from 'bare-path'
 import { tmpdir } from 'bare-os'
 import { fileURLToPath } from 'bare-url'
-import { summaryOf, follow, serve, launch, end, stateOf, start, stop, status, PAGE, CONFIG, PORT, HOST, STATE } from '../index.js'
+import { summaryOf, follow, serve, createStructure, launch, end, stateOf, start, stop, status, PAGE, CONFIG, PORT, HOST, ROOT, STATE } from '../index.js'
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'cli.js')
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -74,6 +74,57 @@ test('a folder of records followed: what is there, the oldest first; then each t
   } finally { rmSync(folder, { recursive: true, force: true }) }
 })
 
+// A completed record with an output, sent on through the mrepos given.
+let n = 0
+function done (through, output, error = null) {
+  const key = `aaaaaaaa-aaaa-4aaa-8aaa-${String(++n).padStart(12, '0')}`
+  const form = { command: ['x'], log: through.map(mrepo => ({ event: 'request.sent', mrepo })), ...(error ? { error } : { output }) }
+  return { topic: '/outbox', key, timestamp: `2026-11-16T11:00:${String(n).padStart(2, '0')}.000Z`, headers: {}, value: { topic: '/haicc/terminal', key, timestamp: `2026-11-16T11:00:${String(n).padStart(2, '0')}.000Z`, headers: {}, value: form } }
+}
+
+test('the install folded from its completed records: its mrepos a tree, each with its state; a swarm node one node, its container part of it', (t) => {
+  const s = createStructure('local/boot')
+  const at = uri => s.snapshot().nodes.find(x => x.uri === uri) ?? null
+  t.alike(s.snapshot(), { root: 'local/boot', nodes: [{ uri: 'local/boot', parent: null, at: '.', package: null, service: null, container: null, depth: 0 }] }, 'nothing yet: the root alone')
+  t.is(s.apply(done([], { deployed: 'host', mrepo: 'local/host', package: 'haiccing/base-component-haicc' })), 'local/host', 'a deploy executed at the root: a child of the root, by its unique URI; what changed said')
+  t.alike(at('local/host'), { uri: 'local/host', parent: 'local/boot', at: 'host', package: 'haiccing/base-component-haicc', service: null, container: null, depth: 1 }, 'the node: its parent, its position, its package; no state yet')
+  s.apply(done(['local/host'], { service: 'initialised', state: 'initialised' }))
+  t.is(at('local/host').service, 'initialised', 'a service command sent on to it: its state')
+  s.apply(done(['local/host'], { service: 'started', state: 'started' }))
+  t.is(s.apply(done(['local/host'], [{ uri: ['main', 'swarms'], value: {}, children: ['swarm-1'], outcome: 'created' }])), null, 'a command that says nothing of the structure: nothing changed')
+  s.apply(done(['local/host'], { deployed: 'swarms/swarm-1/node-1', mrepo: 'swarm-1/node-1', package: 'haiccing/base-component-haicc' }))
+  s.apply(done(['local/host'], { deployed: 'swarms/swarm-1/node-2', mrepo: 'swarm-1/node-2', package: 'haiccing/base-component-haicc' }))
+  t.alike(s.snapshot().nodes.map(x => [x.depth, x.uri, x.parent]), [[0, 'local/boot', null], [1, 'local/host', 'local/boot'], [2, 'swarm-1/node-1', 'local/host'], [2, 'swarm-1/node-2', 'local/host']], 'the tree: each parent before its children, the children by position')
+  s.apply(done(['local/host', 'swarm-1/node-1'], { service: 'started', state: 'started' }))
+  // its container: a swarm node is one node
+  t.is(s.apply(done(['local/host', 'swarm-1/node-1'], { created: 'container', mrepo: 'swarm-1/node-1/container', container: { name: 'haicc-swarm-1-node-1-abc', image: 'haicc-node:x' } })), 'swarm-1/node-1', 'its replica made: the node changed, no node of its own')
+  t.alike(at('swarm-1/node-1').container, { name: 'haicc-swarm-1-node-1-abc', state: 'created', service: null }, 'the node\'s container: made')
+  s.apply(done(['local/host', 'swarm-1/node-1'], { started: 'container', container: 'haicc-swarm-1-node-1-abc', state: 'running' }))
+  t.is(s.apply(done(['local/host', 'swarm-1/node-1', 'swarm-1/node-1/container'], { service: 'started', state: 'started' })), 'swarm-1/node-1', 'a service command executed in the replica: its node changed')
+  t.alike([at('swarm-1/node-1').service, at('swarm-1/node-1').container, s.snapshot().nodes.length], ['started', { name: 'haicc-swarm-1-node-1-abc', state: 'running', service: 'started' }, 4], 'the node: its own state, its container running with the replica\'s state; four nodes still')
+  t.is(s.apply(done(['local/host', 'swarm-1/node-1', 'swarm-1/node-1/container'], { deployed: 'x', mrepo: 'swarm-1/x' })), null, 'a deploy inside a replica: not shown')
+  s.apply(done(['local/host', 'swarm-1/node-1'], { stopped: 'container', container: 'haicc-swarm-1-node-1-abc', state: 'exited' }))
+  t.alike(at('swarm-1/node-1').container, { name: 'haicc-swarm-1-node-1-abc', state: 'exited', service: null }, 'stopped: exited, its replica\'s state not known any more')
+  s.apply(done(['local/host', 'swarm-1/node-1'], { replica: 'container', mrepo: 'swarm-1/node-1/container', container: 'haicc-swarm-1-node-1-abc', image: 'i', state: 'running' }))
+  t.is(at('swarm-1/node-1').container.state, 'running', 'a status asked: what it says')
+  s.apply(done(['local/host', 'swarm-1/node-1'], { removed: 'container', container: 'haicc-swarm-1-node-1-abc' }))
+  t.is(at('swarm-1/node-1').container, null, 'removed: no container')
+  // what changes nothing
+  t.is(s.apply(done(['local/host'], null, 'not now: service start (the service is started)')), null, 'a command that failed: nothing changed')
+  t.is(s.apply(done(['local/elsewhere'], { service: 'started', state: 'started' })), null, 'executed in an mrepo it does not know: nothing')
+  t.is(s.apply({ mode: 'atomic' }), null, 'no record: nothing')
+  // torn down: the node and what was below it
+  t.is(s.apply(done([], { deployed: 'splectral', mrepo: 'local/splectral', package: 'haiccing/base-package-splectral' })), 'local/splectral')
+  t.is(s.apply(done([], { tornDown: 'host' })), 'local/boot', 'a teardown executed at the root: its child gone; the root changed')
+  t.alike(s.snapshot().nodes.map(x => x.uri), ['local/boot', 'local/splectral'], 'the host and the nodes below it gone')
+  t.alike([s.apply(done([], [{ tornDown: 'splectral' }, { tornDown: 'nothing' }])), s.snapshot().nodes.length], ['local/boot', 1], 'several torn down at once: a list, each taken')
+  // deployed again at a position: the one that was there replaced
+  s.apply(done([], { deployed: 'host', mrepo: 'local/host', package: 'a' }))
+  s.apply(done(['local/host'], { service: 'started', state: 'started' }))
+  s.apply(done([], { tornDown: 'host', deployed: 'host', mrepo: 'local/host', package: 'b' }))
+  t.alike([at('local/host').package, at('local/host').service], ['b', null], 'a redeploy: the node new, its state gone')
+})
+
 test('the server: the page, the lines, one record whole, each new line streamed; closed', async (t) => {
   const folder = mkdtempSync(join(tmpdir(), 'splectral-serve-'))
   let s = null
@@ -86,6 +137,9 @@ test('the server: the page, the lines, one record whole, each new line streamed;
     const page = await ask(`${s.url}/`)
     t.alike([page.status, page.type, page.body === PAGE, page.body.includes('<title>Splectral</title>')], [200, 'text/html; charset=utf-8', true, true], 'the page')
     t.absent(/src="http|href="http|@import/.test(PAGE), 'nothing loaded from elsewhere')
+    // its script reads as JavaScript: made a function, not run
+    const script = PAGE.slice(PAGE.indexOf('<script>') + '<script>'.length, PAGE.indexOf('</script>'))
+    t.execution(() => new Function(script), 'the page\'s script reads as JavaScript')
     const all = JSON.parse((await ask(`${s.url}/records`)).body)
     t.alike([all.outbox, all.records.map(l => [l.key, l.ok])], [folder, [[KEYS[1], true], [KEYS[2], false]]], 'the lines so far, the oldest first, and the folder they come from')
     t.alike(JSON.parse((await ask(`${s.url}/record/${KEYS[2]}`)).body), record(2, { error: 'no node there' }), 'one record whole, as its folder holds it')
@@ -100,6 +154,20 @@ test('the server: the page, the lines, one record whole, each new line streamed;
     t.ok(await until(() => lines.length === 1), 'a record arrives: its line streamed')
     t.alike([lines[0].key, lines[0].command, lines[0].through], [KEYS[3], 'boot/deploy host base-component-haicc', []], 'the line')
     t.is(s.records().length, 3, 'and among the lines')
+    // the structure: folded from the records, asked for, and streamed when one changes it
+    t.alike([s.root, ROOT, JSON.parse((await ask(`${s.url}/structure`)).body)], ['local/boot', 'local/boot', { root: 'local/boot', nodes: [{ uri: 'local/boot', parent: null, at: '.', package: null, service: null, container: null, depth: 0 }] }], 'the structure asked for: the root alone, no record having said more')
+    const structures = []
+    const second2 = http.request(`${s.url}/stream`, res => { let buf = ''; res.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n\n')) >= 0) { const block = buf.slice(0, i); buf = buf.slice(i + 2); if (block.startsWith('event: structure\n')) structures.push(JSON.parse(block.slice(block.indexOf('data: ') + 6))) } }) })
+    second2.on('error', () => {})
+    second2.end()
+    t.ok(await until(() => s.clients() === 2), 'a second stream open')
+    const deployed = record(0, { command: ['boot/deploy', 'host', 'base-component-haicc'], log: [], done: '2026-11-16T10:00:09.000Z' })
+    deployed.value.value.output = { deployed: 'host', mrepo: 'local/host', package: 'haiccing/base-component-haicc' }
+    drop(folder, deployed)
+    t.ok(await until(() => structures.length === 1), 'a record that changes the structure: the structure streamed, an event of its own')
+    t.alike([structures[0].changed, structures[0].nodes.map(x => x.uri)], ['local/host', ['local/boot', 'local/host']], 'what changed, and the tree now')
+    t.alike(s.structure().nodes.map(x => x.uri), ['local/boot', 'local/host'], 'and asked of the server itself')
+    t.is(lines.filter(l => l.key).length, 2, 'its line streamed as any other')
     // the port taken: another, unless that is not wanted
     second = await serve({ outbox: folder, port: s.port })
     t.ok(second.port !== s.port && second.port > 0, 'a port that is taken: a free one instead')
@@ -127,7 +195,7 @@ test('the program as its own process: started, its state, answering; ended; ende
     t.is(await end(dir), null, 'nothing to end')
     const s = await launch({ program: CLI, dir, outbox, port: 0 })
     t.ok(s?.pid && s.pid !== process.pid && alive(s.pid), 'started: its own process')
-    t.alike([Object.keys(s), s.outbox, s.url === `http://127.0.0.1:${s.port}`], [['pid', 'url', 'port', 'outbox', 'started'], outbox, true], 'its state, written into the mrepo\'s folder when it listens')
+    t.alike([Object.keys(s), s.outbox, s.url === `http://127.0.0.1:${s.port}`], [['pid', 'url', 'port', 'outbox', 'root', 'started'], outbox, true], 'its state, written into the mrepo\'s folder when it listens')
     t.alike(stateOf(dir), s, 'read back')
     t.is(JSON.parse((await ask(`${s.url}/records`)).body).records.length, 1, 'answering: the record there')
     t.alike(await end(dir), { pid: s.pid, how: 'SIGTERM' }, 'ended: asked, and waited for')
@@ -168,7 +236,7 @@ test('the actions: start, status, stop; what start refuses', { timeout: 60000 },
   const outbox = join(work, 'mrepos', 'boot', 'outbox')
   mkdirSync(dir, { recursive: true })
   try {
-    const exec = execution({ dir, work })
+    const exec = execution({ dir, work, uri: 'local/splectral' })
     t.alike(await status(exec), { running: false }, 'status, nothing started: not running')
     t.alike(await stop(exec), { splectral: 'stopped', pid: null }, 'stop, nothing running: no error')
     await t.exception(start(exec, { args: ['web'] }), /not a port: web/)
@@ -188,6 +256,7 @@ test('the actions: start, status, stop; what start refuses', { timeout: 60000 },
     t.alike(exec.entries.map(e => [e.level, e.event]), [['verbose', 'server'], ['info', 'started']], 'its step at verbose, what it did at info')
     t.is(JSON.parse((await ask(`${s.url}/records`)).body).records[0].key, KEYS[1], 'the page\'s lines: the root\'s records')
     t.alike(await start(exec, {}, { program: CLI }), s, 'start again: running already, left as it is')
+    t.is(stateOf(dir).root, 'local/boot', 'the root it was given: the mrepo the work folder\'s setting names, in this mrepo\'s swarm')
     const st = await status(exec)
     t.alike([st.running, st.url, st.pid, st.outbox, typeof st.started], [true, s.url, s.pid, outbox, 'string'], 'status: running, where, what it follows, since when')
     t.alike(await stop(exec), { splectral: 'stopped', pid: s.pid }, 'stop: its process ended')
