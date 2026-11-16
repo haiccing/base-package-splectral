@@ -1,0 +1,67 @@
+# splectral-server
+
+Splectral's server on an mrepo: the commands of an install shown in a browser as they complete.
+
+Splectral is for seeing a running system. This is its first step on the
+mrepos: one page, one subscription. A Splectral mrepo is deployed
+beside the host; started, it runs a server that follows the root
+mrepo's outbox folder, where every command of the install ends as a
+completed record. The page lists them, the newest first; a line opened
+shows its record whole. Offered by `haiccing/base-package-splectral`.
+
+| | |
+|---|---|
+| [external/](external/) | the splectral protocol's actions |
+| [internal/](internal/) | the server, the records, the page, the server's process |
+| [test/](test/) | its tests |
+
+`cli.js` is the server as a program: what `start` starts.
+
+## Commands
+
+```
+haicc splectral splectral/start
+haicc splectral splectral/start 4401
+haicc splectral splectral/status
+haicc splectral splectral/stop
+```
+
+## The page
+
+A line a command, whichever terminal sent it: when it completed, the
+command as typed, the mrepos it was sent on to, its result (an error
+with what it said), how long it took. A line opened shows its record
+whole, its log in it. New lines arrive as the commands complete.
+
+## What it serves
+
+On `127.0.0.1`, port 4400 unless another is given; that one taken, a
+free one. Read only: `GET`.
+
+| | |
+|---|---|
+| `/` | the page |
+| `/records` | `{ outbox, records }`: the lines so far, the oldest first, the last 500 |
+| `/record/<key>` | one record whole, as its folder holds it |
+| `/stream` | each new line as it arrives (Server-Sent Events) |
+
+## Rules
+
+- **It reads, nothing else**: it sends no command and writes nowhere but
+  its own state, `splectral.json` in its mrepo's folder.
+- **One subscription**: a folder of completed records. What it follows
+  is said in its status and on the page.
+- **Its own process**, ended by `stop`, and by itself when its mrepo's
+  runtime ends or its mrepo's folder is gone.
+- **Nothing loaded from elsewhere**: the page is plain HTML, CSS and
+  JavaScript, served whole.
+
+## Config
+
+`CONFIG`, in `internal/config.js`: the three actions at the mrepo
+itself; `start` takes a port, optional.
+
+## Tests
+
+- `npm test`: a record summed up, a folder followed, the server asked
+  over HTTP, the program started as a process and ended, the actions.

@@ -1,27 +1,20 @@
 {
   "name": "base-package-splectral",
-  "description": "The Splectral platform: the server, its shell, the contract and model, transports, and the extensions for p2p swarms (watchers, actions, observer), scenarios, the timeline and replay; the map view (splectral/base-view-map), shared by the demos.",
+  "description": "Package: Splectral, the commands of an install shown in a browser as they complete; an mrepo of its own beside the host.",
   "private": true,
   "license": "MIT",
-  "pkgm": {
-    "package": "splectral",
-    "requires": [
-      "p2p"
-    ],
-    "folders": [
-      "pear-full-square/splectral-contract",
-      "pear-full-square/splectral-model",
-      "pear-full-square/splectral-transport",
-      "pear-full-square/splectral-server",
-      "pear-full-square/splectral-shell",
-      "pear-full-square/splectral-p2p-observer",
-      "pear-full-square/splectral-p2p-watchers",
-      "pear-full-square/splectral-p2p-actions",
-      "pear-full-square/splectral-scenario",
-      "pear-full-square/splectral-timeline",
-      "pear-full-square/splectral-replay",
-      "splectral/base-view-map"
-    ],
-    "hash": "a43e93018c67806efc97305f0494bf855a60d09e7202faf31e189f834fbe7da6"
+  "type": "module",
+  "main": "main.js",
+  "modules": [
+    "pear-full-square/splectral-server",
+    "pear-full-square/mrepo-base-help",
+    "pear-full-square/pkgm-base-check"
+  ],
+  "template": {
+    "repository": "haiccing/package-docs-template",
+    "commit": "750715e89d4f83687da348fdf48e652133a41da1"
+  },
+  "scripts": {
+    "test": "bare test/run.js"
   }
 }
