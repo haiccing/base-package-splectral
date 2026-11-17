@@ -1,8 +1,8 @@
 {
   "package": "haiccing/base-package-splectral",
-  "content": "086f25862388f397d2e387ea643da55a086aea9d11c619d89037804593fe2d10",
+  "content": "b48498bcc6d1d257e384db53e0417db3a26dac25d3cbd244d8137dbbef0d79a1",
   "bare": "v1.36.0",
-  "date": "2026-11-17T22:08:11.097Z",
+  "date": "2026-11-17T23:34:49.162Z",
   "set": "full",
   "ok": true,
   "units": [
@@ -166,12 +166,12 @@
       "unit": "/test/modules/pear-full-square/pkgm-base-check",
       "ok": true,
       "tests": {
-        "passed": 19,
-        "total": 19
+        "passed": 23,
+        "total": 23
       },
       "asserts": {
-        "passed": 54,
-        "total": 54
+        "passed": 62,
+        "total": 62
       },
       "failures": []
     },
