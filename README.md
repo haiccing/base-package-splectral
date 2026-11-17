@@ -96,5 +96,3 @@ itself; `start` takes a port, optional.
 - `run.js`: the server's program, what `splectral/start` starts from the
   mrepo's own packages.
 - `main.js`: the dispatcher, the bundle's main, generated.
-
-Written from [splectrum/splectrum-dev-env-3-mycelium](https://github.com/splectrum/splectrum-dev-env-3-mycelium).
