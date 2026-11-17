@@ -7,7 +7,7 @@
     "haiccing/base-package-protocol",
     "haiccing/base-package-service",
     "haiccing/package-docs-mrepo",
-    "haiccing/package-docs-template",
+    "haiccing/package-docs-package",
     "haiccing/base-package-splectral"
   ]
 }

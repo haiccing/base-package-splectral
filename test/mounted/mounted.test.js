@@ -76,7 +76,7 @@ test('the mrepo it defines: its list of packages, itself last; its hooks, file b
     'haiccing/base-package-protocol',
     'haiccing/base-package-service',
     'haiccing/package-docs-mrepo',
-    'haiccing/package-docs-template',
+    'haiccing/package-docs-package',
     'haiccing/base-package-splectral'
   ], 'the runtime, help, the protocol protocol, the service, the documentation, this package: deployed as the target, it makes the Splectral mrepo')
   t.alike(brought, {
