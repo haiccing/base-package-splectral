@@ -54,8 +54,8 @@ setting.
   The command stays in the form, beside what it was interpreted as.
 - **A continuation** (`lib/record.js`: `continuationOf`, `CEILING`,
   `complete`): a completed form may hold, beside its output, a script
-  for who asked to go on with: `{ at, commands }`, the commands each
-  their parts, at most 100, the position they are written from. The
+  for who asked to go on with: `{ at, script }`, shell text calling
+  `haicc`, at most 64 KiB, and the position it is run for. The
   flag `continuation=<script>` asks an action that has scripts for one,
   by name.
 - **Flags** (`lib/flags.js`): written after a command's URI, after
@@ -124,6 +124,8 @@ setting.
 - **Hooks** (`hooks(reader, transition)`, `lib/hooks.js`): the commands
   of a status transition, the files in `/runtime/hooks/<transition>/`, in
   name order. The runtime fires `boot`; the service the other four.
+  `scripts(reader, transition)`: its shell hooks, `<name>.sh`, their
+  text, run by the runtime with `sh`.
 - **A layer's records** (`layer(ctx, branch)`): one JSON document a
   record, `<name>.json`, listed in the order they arrived (the commit
   chain). A layer's config, `layer.json` (committed with it when built from
@@ -136,4 +138,4 @@ setting.
 
 ## Tests
 
-- `brittle-bare test/*.test.js` (Bare installed): the unit tests
+- `brittle-bare test/*.test.js` (Bare installed): the inbox on p2p-git and native git, a command interpreted, the check of a request (activation, state, internal), hooks and a script's lines, flags, the log, a record; each test by its name in [test/](test/).

@@ -1,0 +1,3 @@
+# start: the mrepo brought into service, its start hook starting its server
+service/initialise
+service/start

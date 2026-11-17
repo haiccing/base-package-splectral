@@ -9,14 +9,16 @@ The tests of mrepo-base-request, a section per file, each test by its name.
 
 ## `check.test.js`
 
-- a command interpreted: its parts, the default action, the URI
+- a URI in a request: where its writer stands; inside, an array of segments
+- a command interpreted: its parts, the default action, the URI its segments
 - missing: what an action's config asks for and the request does not give
 - matches: a URI against a config's pattern
 - check: canonical, loaded, offered there
 - check: nothing is active by default; a request from outside only for an active protocol
 - check: the service's own actions, each in its state
 - check at the inbox: neither the activation nor the state (the queue may change them first)
-- hooks: the commands of a transition, files in its folder, in name order
+- hooks: a file a transition, its lines simple commands; a script's lines, split as the shell splits them
+- a script's command: its URI where its lines run, then the lines, one argument
 - flags: written after a command's URI, that step's; -- says where what follows starts
 - the log: three levels of detail, info without asking; an error and a warning always
 - a record: topic, key, timestamp, headers (empty), value; the onion; a form completed

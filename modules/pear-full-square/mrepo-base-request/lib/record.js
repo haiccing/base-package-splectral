@@ -26,20 +26,19 @@ export const wrap = (topic, inner) => record(topic, inner, inner?.key ?? null)
 // Completed: its output (or the error that stopped it), and its log when
 // there is one (the entries kept: a request is its own record).
 // (a continuation: with an output, what the one who asked goes on with:
-// { at, commands }; continuationOf says what one is)
+// { at, script }; continuationOf says what one is)
 export const complete = (core, result, log = []) => ({ ...core, value: { ...core.value, ...(result.ok ? { output: result.value } : { error: result.error }), ...(result.ok && result.continuation ? { continuation: result.continuation } : {}), ...(log.length ? { log } : {}) } })
 // A continuation: a script to continue with, answered beside an output:
-// { at, commands }: the position its commands are written from (as the
-// one who answers sees it: `.` itself), and the commands, each its parts;
-// at most CEILING of them. Run by who asked, the terminal: one after the
-// other, each after the response of the one before; not by an mrepo.
-export const CEILING = 100
-export function continuationOf (commands, at = '.') {
-  if (!Array.isArray(commands) || !commands.length) throw new Error('not a continuation: its commands, a list')
-  if (commands.length > CEILING) throw new Error(`not a continuation: ${commands.length} commands (at most ${CEILING})`)
-  for (const c of commands) if (!Array.isArray(c) || !c.length || c.some(p => typeof p !== 'string' || !p)) throw new Error('not a continuation: a command is its parts, <protocol>/<action> <URI> <arguments>')
-  if (typeof at !== 'string' || !at) throw new Error('not a continuation: the position its commands are written from')
-  return { at, commands }
+// { at, script }: the position it is run for, from the root as the one
+// who answers sees it (`.` itself), and the script, shell text calling
+// haicc; at most CEILING bytes. Run by who asked, the terminal, with sh:
+// HAICC_AT the position; not by an mrepo.
+export const CEILING = 65536
+export function continuationOf (script, at = '.') {
+  if (typeof script !== 'string' || !script.trim()) throw new Error('not a continuation: its script, shell text')
+  if (Buffer.byteLength(script) > CEILING) throw new Error(`not a continuation: ${Buffer.byteLength(script)} bytes (at most ${CEILING})`)
+  if (typeof at !== 'string' || !at) throw new Error('not a continuation: the position it is run for')
+  return { at, script }
 }
 // Log levels. An error and a warning are always kept (ALWAYS). Of the
 // other three (DETAIL) a request says how much it wants: info, the least

@@ -55,6 +55,8 @@ Shared by the tests, not a test itself. Build the test repository: fixed authors
 
 The contract suite on p2p-git with a Hyperdrive as its filesystem, through p2p-git's own adapter (hyperdrive-fs.js): the fixture copied into a drive (on a Corestore of its own), then the same tests as on every other engine.
 
+- its stores closed
+
 ## `isogit.test.js`
 
 The contract suite (`contract.js`) on isomorphic-git.

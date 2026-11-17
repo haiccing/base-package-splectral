@@ -17,4 +17,4 @@ json.decode(bytes)        // { a: 1 }
 
 ## Tests
 
-- `brittle-bare test/*.test.js` (Bare installed): the unit tests
+- `brittle-bare test/*.test.js` (Bare installed): a value to bytes and back; each test by its name in [test/](test/).

@@ -33,10 +33,11 @@ import { layer, AUTHOR } from './lib/layer.js'
 import { viewOf, gitdirOf, setting, isWork, SETTING, MREPOS } from './lib/view.js'
 import { relative, from, within, slashed, unslashed, segmented, joined, positionOf } from 'mycelium-uri'
 import { interpret, formOf, layerFor, ROOT, MAIN, OUTSIDE, OWN } from './lib/command.js'
-import { hooks, hooksAt, TRANSITIONS } from './lib/hooks.js'
+import { hookOf, hookAt, HOOKS, TRANSITIONS } from './lib/hooks.js'
+import { words, parse, send, run as runLines } from './lib/lines.js'
 
 export { follow } from './lib/follow.js'
-export { MREPOS, post, ensure, inboxFolder, inboxOf, outboxOf, INBOX, OUTBOX, record, wrap, guid, complete, continuationOf, CEILING, isComplete, logger, LEVELS, ALWAYS, DETAIL, FLAGS, LAYER, flagsOf, sorted, layerOf, layerFor, layer, AUTHOR, viewOf, gitdirOf, setting, isWork, SETTING, interpret, formOf, relative, from, within, slashed, unslashed, segmented, joined, positionOf, ROOT, MAIN, OUTSIDE, OWN, hooks, hooksAt, TRANSITIONS }
+export { MREPOS, post, ensure, inboxFolder, inboxOf, outboxOf, INBOX, OUTBOX, record, wrap, guid, complete, continuationOf, CEILING, isComplete, logger, LEVELS, ALWAYS, DETAIL, FLAGS, LAYER, flagsOf, sorted, layerOf, layerFor, layer, AUTHOR, viewOf, gitdirOf, setting, isWork, SETTING, interpret, formOf, relative, from, within, slashed, unslashed, segmented, joined, positionOf, ROOT, MAIN, OUTSIDE, OWN, hookOf, hookAt, HOOKS, TRANSITIONS, words, parse, send, runLines }
 
 export const PENDING = 'request/pending/default'
 export const EXECUTE = 'request/execute'
@@ -170,7 +171,7 @@ const branches = async ctx => Object.fromEntries(await ctx.backend.listBranches(
 // No mark on the request: internal is having no record in the inbox, which
 // keeps its history (isInternal).
 // -> { name, queued, refused }
-export async function admit (ctx, core, { origin, name = core?.key ?? guid() }) {
+export async function admit (ctx, core, { origin, name = core?.key ?? guid(), at = null }) {
   let why = null
   let form = core?.value
   // a command as typed (its parts): interpreted here, the form filled in
@@ -185,7 +186,7 @@ export async function admit (ctx, core, { origin, name = core?.key ?? guid() }) 
   // (what is wrong with the request itself is said as it is; anything else
   // that fails taking it in is the runtime's)
   try {
-    const filled = formOf(form, ctx.protocols ?? {}, origin === 'internal' ? OWN : OUTSIDE)
+    const filled = formOf(form, ctx.protocols ?? {}, at ?? (origin === 'internal' ? OWN : OUTSIDE))
     if (filled !== form) { form = filled; core = { ...core, value: form } }
   } catch (err) { why = err.message }
   if (!why) {
@@ -208,9 +209,11 @@ export async function isInternal (ctx, name) {
   return !(await layer(ctx, 'inbox').list()).includes(name)
 }
 
-// An internal request: the mrepo's own, submitted straight to the handler.
-// Its topic null: nobody waits for it. -> admit's result
-export const internal = (ctx, form, name = guid()) => admit(ctx, record(null, form, name), { origin: 'internal', name })
+// An internal request: the mrepo's own, submitted straight to the handler,
+// tagged as triggered internally. Its topic null: nobody waits for it.
+// at: where its command stands (OWN, the mrepo's root, by default; OUTSIDE,
+// main, for a line written as from outside: a hook's). -> admit's result
+export const internal = (ctx, form, name = guid(), { at = null } = {}) => admit(ctx, { ...record(null, form, name), headers: { trigger: 'internal' } }, { origin: 'internal', name, at })
 
 export async function untaken (ctx) {
   const b = await branches(ctx)
@@ -282,7 +285,10 @@ export async function request (ctx) {
   // The inbox taken in, when its head has moved, each record through the
   // handler (admit); not while the mrepo is not operational yet (ctx.intake
   // false: its internal requests first; the records wait in the inbox).
+  // (intake 'internal', while an mrepo boots: only its own requests, tagged
+  // by their trigger; the others left in the inbox, taken in after)
   const head = (await branches(ctx)).inbox
+  let deferred = false
   if (head && head !== ctx.seen.inbox && ctx.intake !== false) {
     const box = layer(ctx, 'inbox')
     const here = `/${ctx.uri ?? ctx.name}${INBOX}`
@@ -290,6 +296,7 @@ export async function request (ctx) {
       let envelope = null
       // catch: a record that does not read is no request: refused below, as one that is none
       try { envelope = await box.read(name) } catch {}
+      if (ctx.intake === 'internal' && envelope?.value?.headers?.trigger !== 'internal') { deferred = true; continue }
       // misdelivered: the envelope's, before its content is looked at
       if (envelope && envelope.topic !== here) {
         const refused = complete(envelope.value ?? record(null, null, name), { ok: false, error: `misdelivered: for ${envelope.topic}, this is ${here}` })
@@ -299,7 +306,7 @@ export async function request (ctx) {
       }
       await admit(ctx, envelope?.value ?? null, { origin: 'inbox', name })
     }
-    ctx.seen.inbox = head
+    if (!deferred) ctx.seen.inbox = head
   }
 
   // A completed form: to done, then out of execute; sent back.

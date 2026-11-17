@@ -25,4 +25,4 @@ box.read(name); box.remove(name)
 
 ## Tests
 
-- `brittle-bare test/*.test.js` (Bare installed): the unit tests
+- `brittle-bare test/*.test.js` (Bare installed): documents written, listed in order, read, removed; each test by its name in [test/](test/).

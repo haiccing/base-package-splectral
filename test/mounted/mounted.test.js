@@ -10,7 +10,7 @@
 import test from '../../modules/node_modules/brittle/index.js'
 import http from '../../modules/node_modules/bare-http1/index.js'
 import os from '../../modules/node_modules/bare-os/index.js'
-import { readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from '../../modules/node_modules/bare-fs/index.js'
+import { readFileSync, readdirSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from '../../modules/node_modules/bare-fs/index.js'
 import { join, dirname } from '../../modules/node_modules/bare-path/index.js'
 import { fileURLToPath } from '../../modules/node_modules/bare-url/index.js'
 import * as mounted from '../../protocol.js'
@@ -67,7 +67,7 @@ test('its config, value by value', (t) => {
 // <transition>/<name>, each its command.
 const hooksDir = join(pkg, 'mrepo', 'runtime', 'hooks')
 const brought = {}
-for (const tr of readdirSync(hooksDir).sort()) for (const f of readdirSync(join(hooksDir, tr)).sort()) brought[`${tr}/${f.slice(0, -5)}`] = json('mrepo', 'runtime', 'hooks', tr, f)
+for (const f of existsSync(hooksDir) ? readdirSync(hooksDir).sort() : []) readFileSync(join(hooksDir, f), 'utf8').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#')).forEach((l, i) => { brought[`${f.replace(/\.haicc$/, '')}/${i + 1}`] = l.split(/\s+/) })
 
 test('the mrepo it defines: its list of packages, itself last; its hooks, file by file; the state it starts in', (t) => {
   t.alike(json('mrepo', 'packages', 'layer.json').packages, [
@@ -78,23 +78,23 @@ test('the mrepo it defines: its list of packages, itself last; its hooks, file b
     'haiccing/base-package-splectral'
   ], 'the runtime, info, the protocol protocol, the service, this package: deployed as the target, it makes the Splectral mrepo')
   t.alike(brought, {
-    'boot/activate-info': ['protocol/activate', '.', 'info'],
-    'boot/activate-runtime': ['protocol/activate', '.', 'runtime'],
-    'boot/activate-service': ['protocol/activate', '.', 'service'],
-    'initialise/info-extract': ['info/extract'],
-    'start/activate-splectral': ['protocol/activate', '.', 'splectral'],
-    'start/serve': ['splectral/start'],
-    'stop/close': ['splectral/stop'],
-    'stop/deactivate-splectral': ['protocol/deactivate', '.', 'splectral']
-  }, 'each hook file, its transition and its command; none that is not named here')
+    'boot/1': ['protocol/activate', '.', 'info'],
+    'boot/2': ['protocol/activate', '.', 'runtime'],
+    'boot/3': ['protocol/activate', '.', 'service'],
+    'initialise/1': ['info/extract'],
+    'start/1': ['protocol/activate', '.', 'splectral'],
+    'start/2': ['splectral/start'],
+    'stop/1': ['splectral/stop'],
+    'stop/2': ['protocol/deactivate', '.', 'splectral']
+  }, 'each hook file, its transition, each line its command; none that is not named here')
   t.alike(json('mrepo', 'runtime', 'service.json'), { state: 'booted' }, 'a Splectral mrepo starts booted')
-  // in name order, as a transition runs them: opened before it serves, closed before it is shut
-  t.alike([Object.keys(brought).filter(n => n.startsWith('start/')), Object.keys(brought).filter(n => n.startsWith('stop/'))], [['start/activate-splectral', 'start/serve'], ['stop/close', 'stop/deactivate-splectral']], 'start: activated, then served; stop: its server ended, then deactivated')
+  // in line order, as a transition runs them: opened before it serves, closed before it is shut
+  t.alike([brought['start/1'][0], brought['start/2'][0], brought['stop/1'][0], brought['stop/2'][0]], ['protocol/activate', 'splectral/start', 'splectral/stop', 'protocol/deactivate'], 'start: activated, then served; stop: its server ended, then deactivated')
   for (const [name, [first]] of Object.entries(brought)) {
     const [p, a] = first.split('/')
     if (p === 'splectral') t.ok(mounted.protocols.splectral.actions[a], `${name}: ${first} is an action of the protocol`)
   }
-  t.alike(json('scripts', 'start.json'), [['service/initialise'], ['service/start']], 'its script start: the mrepo brought into service, its start hook starting the server')
+  t.alike(readFileSync(join(pkg, 'scripts', 'start.haicc'), 'utf8').split('\n').filter(l => l && !l.startsWith('#')), ['service/initialise', 'service/start'], 'its script start: the mrepo brought into service, its start hook starting the server')
 })
 
 test('the actions: nothing running; what start refuses; its server started from the package\'s own program, asked, ended', { timeout: 60000 }, async (t) => {

@@ -1,0 +1,3 @@
+# start: run as the service opens its door, a line a command
+protocol/activate . splectral
+splectral/start

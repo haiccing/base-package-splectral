@@ -1,8 +1,8 @@
 {
   "package": "haiccing/base-package-splectral",
-  "content": "296a1db8d29e9fcbc81bdf71e8eebd2f69e9d172c92f6b51c4dd9f75918d351b",
+  "content": "086f25862388f397d2e387ea643da55a086aea9d11c619d89037804593fe2d10",
   "bare": "v1.36.0",
-  "date": "2026-11-17T10:05:39.001Z",
+  "date": "2026-11-17T22:08:11.097Z",
   "set": "full",
   "ok": true,
   "units": [
@@ -88,12 +88,12 @@
       "unit": "/test/modules/pear-full-square/mrepo-base-request",
       "ok": true,
       "tests": {
-        "passed": 16,
-        "total": 16
+        "passed": 17,
+        "total": 17
       },
       "asserts": {
-        "passed": 187,
-        "total": 187
+        "passed": 188,
+        "total": 188
       },
       "failures": []
     },
