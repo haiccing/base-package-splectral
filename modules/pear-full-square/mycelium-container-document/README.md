@@ -7,9 +7,9 @@ Each document is written under a temporary name, then renamed, in the
 encoding it is given (a handler such as `mycelium-value-json`). Writers may
 work in parallel, each with its own names.
 
-| | |
-|---|---|
-| [test/](test/) | its tests, what each checks |
+## Links
+
+- [test](test/)
 
 ## Usage
 

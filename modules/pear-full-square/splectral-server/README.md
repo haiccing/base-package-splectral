@@ -9,13 +9,13 @@ mrepo's outbox folder, where every command of the install ends as a
 completed record. The page shows the install as a tree and lists the
 commands, the newest first. Offered by `haiccing/base-package-splectral`.
 
-| | |
-|---|---|
-| [external/](external/) | the splectral protocol's actions |
-| [internal/](internal/) | the server, the records, the structure, the page, the server's process |
-| [test/](test/) | its tests |
-
 `cli.js` is the server as a program: what `start` starts.
+
+## Links
+
+- [external](external/)
+- [internal](internal/)
+- [test](test/)
 
 ## Commands
 
@@ -61,11 +61,6 @@ free one. Read only: `GET`.
   runtime ends or its mrepo's folder is gone.
 - **Nothing loaded from elsewhere**: the page is plain HTML, CSS and
   JavaScript, served whole.
-
-## Config
-
-`CONFIG`, in `internal/config.js`: the three actions at the mrepo
-itself; `start` takes a port, optional.
 
 ## Tests
 

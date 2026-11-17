@@ -17,16 +17,16 @@ const TREE = '040000'
 // mrepo's layers (help: the READMEs of its packages; protocols: the
 // configs of the protocols it offers); pending and capability go when the
 // code using them is rebuilt.
-const LAYERS = ['main', 'request', 'packages', 'runtime', 'inbox', 'outbox', 'help', 'howto', 'info', 'protocols', 'links', 'pending', 'overlay', 'data', 'capability']
+const LAYERS = ['main', 'request', 'packages', 'runtime', 'inbox', 'outbox', 'info', 'protocols', 'links', 'pending', 'overlay', 'data', 'capability']
 // Every reserved first segment: a branch name starts with one.
 const RESERVED = [...LAYERS, 'execute', 'publish']
 // Permanent: never deleted.
 const PERMANENT = ['main', 'pending/default']
 
 // A layer's name: its first segment is a layer's, with more segments after
-// it, except main, packages, runtime, inbox, outbox, help, howto, info,
+// it, except main, packages, runtime, inbox, outbox, info,
 // protocols and links, each a layer on its own.
-const SOLO = ['main', 'packages', 'runtime', 'inbox', 'outbox', 'help', 'howto', 'info', 'protocols', 'links']
+const SOLO = ['main', 'packages', 'runtime', 'inbox', 'outbox', 'info', 'protocols', 'links']
 function layerName (name) {
   const first = name.split('/')[0]
   if (!LAYERS.includes(first) || (SOLO.includes(first) ? name !== first : name === first)) {

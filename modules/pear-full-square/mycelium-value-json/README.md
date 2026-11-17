@@ -2,9 +2,9 @@
 
 An encoding as a handler: one value to bytes and back, as one line of JSON.
 
-| | |
-|---|---|
-| [test/](test/) | its tests, what each checks |
+## Links
+
+- [test](test/)
 
 ## Usage
 

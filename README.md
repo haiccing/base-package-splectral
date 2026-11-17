@@ -9,13 +9,20 @@ of the install ends as a completed record, and serves one page: the
 install as a tree, and the commands, the newest first. It reads only:
 it sends no command.
 
-| | |
-|---|---|
-| [mrepo/](mrepo/) | its part of the structure: the Splectral mrepo's list and runtime config |
-| [scripts/](scripts/) | its scripts: what to go on with after a deploy |
-| [test/](test/) | its tests: its protocol as mounted, its list and hooks, and the generic ones |
-| [test-reports/](test-reports/) | the report of its last pre-release |
-| [modules/](modules/) | its code, assembled: ours and the third-party code |
+## Links
+
+- [mrepo](mrepo/)
+- [scripts](scripts/)
+- [test](test/)
+- [test-reports](test-reports/)
+- [modules](modules/)
+
+## Included packages
+
+- [base-package-runtime](../base-package-runtime/)
+- [base-package-info](../base-package-info/)
+- [base-package-protocol](../base-package-protocol/)
+- [base-package-service](../base-package-service/)
 
 ## How to
 
@@ -76,6 +83,11 @@ Every command that comes in through the boot mrepo: what a terminal
 sends, on this machine. A command the mrepos send among themselves (a
 hook) is in the log of the command that caused it, not a line of its
 own.
+
+## Config
+
+In `protocol.js`, the package's: the three actions at the mrepo
+itself; `start` takes a port, optional.
 
 ## Package
 

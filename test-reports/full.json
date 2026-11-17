@@ -1,8 +1,8 @@
 {
   "package": "haiccing/base-package-splectral",
-  "content": "b1cb236230c9e6f83af4a8e88533b3827d4047e45f1ca17777643f7287ec2831",
+  "content": "0495c918787bd24750a847d50bfdb8643c22282d17a14caffe1a65b31813444e",
   "bare": "v1.36.0",
-  "date": "2026-11-17T01:46:49.565Z",
+  "date": "2026-11-17T04:49:39.814Z",
   "set": "full",
   "ok": true,
   "units": [
@@ -20,7 +20,7 @@
       "failures": []
     },
     {
-      "unit": "/test/help",
+      "unit": "/test/info",
       "ok": true,
       "tests": {
         "passed": 1,
@@ -72,15 +72,15 @@
       "failures": []
     },
     {
-      "unit": "/test/modules/pear-full-square/mrepo-base-help",
+      "unit": "/test/modules/pear-full-square/mrepo-base-info",
       "ok": true,
       "tests": {
-        "passed": 5,
-        "total": 5
+        "passed": 7,
+        "total": 7
       },
       "asserts": {
-        "passed": 27,
-        "total": 27
+        "passed": 52,
+        "total": 52
       },
       "failures": []
     },
@@ -179,12 +179,12 @@
       "unit": "/test/modules/pear-full-square/splectral-server",
       "ok": true,
       "tests": {
-        "passed": 7,
-        "total": 7
+        "passed": 6,
+        "total": 6
       },
       "asserts": {
-        "passed": 94,
-        "total": 94
+        "passed": 86,
+        "total": 86
       },
       "failures": []
     }

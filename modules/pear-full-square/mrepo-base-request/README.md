@@ -9,10 +9,10 @@ into `request/execute`, then into `request/done`, and sent back through the
 outbox. The module also holds the records, the boxes, logging, following,
 and the mrepo's storage setting. The runtime runs it, one pass at a time.
 
-| | |
-|---|---|
-| [lib/](lib/) | its parts, a file each |
-| [test/](test/) | its tests, what each checks |
+## Links
+
+- [lib](lib/)
+- [test](test/)
 
 ## Design
 

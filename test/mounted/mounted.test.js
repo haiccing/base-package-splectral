@@ -72,18 +72,16 @@ for (const tr of readdirSync(hooksDir).sort()) for (const f of readdirSync(join(
 test('the mrepo it defines: its list of packages, itself last; its hooks, file by file; the state it starts in', (t) => {
   t.alike(json('mrepo', 'packages', 'layer.json').packages, [
     'haiccing/base-package-runtime',
-    'haiccing/base-package-help',
+    'haiccing/base-package-info',
     'haiccing/base-package-protocol',
     'haiccing/base-package-service',
-    'haiccing/package-docs-mrepo',
-    'haiccing/package-docs-package',
     'haiccing/base-package-splectral'
-  ], 'the runtime, help, the protocol protocol, the service, the documentation, this package: deployed as the target, it makes the Splectral mrepo')
+  ], 'the runtime, info, the protocol protocol, the service, this package: deployed as the target, it makes the Splectral mrepo')
   t.alike(brought, {
-    'boot/activate-help': ['protocol/activate', '.', 'help'],
+    'boot/activate-info': ['protocol/activate', '.', 'info'],
     'boot/activate-runtime': ['protocol/activate', '.', 'runtime'],
     'boot/activate-service': ['protocol/activate', '.', 'service'],
-    'initialise/help-extract': ['help/extract'],
+    'initialise/info-extract': ['info/extract'],
     'start/activate-splectral': ['protocol/activate', '.', 'splectral'],
     'start/serve': ['splectral/start'],
     'stop/close': ['splectral/stop'],

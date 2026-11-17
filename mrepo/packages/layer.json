@@ -1,13 +1,11 @@
 {
   "mode": "replicated",
-  "description": "The packages the Splectral mrepo is made of, in deploy order: the runtime, the help protocol, the protocol protocol, the service protocol, the documentation packages, this package last.",
+  "description": "The packages the Splectral mrepo is made of, in deploy order: the runtime, the info protocol, the protocol protocol, the service protocol, this package last.",
   "packages": [
     "haiccing/base-package-runtime",
-    "haiccing/base-package-help",
+    "haiccing/base-package-info",
     "haiccing/base-package-protocol",
     "haiccing/base-package-service",
-    "haiccing/package-docs-mrepo",
-    "haiccing/package-docs-package",
     "haiccing/base-package-splectral"
   ]
 }

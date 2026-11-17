@@ -7,10 +7,10 @@ plain merges and squashes under the rules. The rules code uses only the backend 
 an adapter maps the contract onto one engine: native git, isomorphic-git,
 p2p-git.
 
-| | |
-|---|---|
-| [lib/](lib/) | its parts, a file each |
-| [test/](test/) | its tests, what each checks |
+## Links
+
+- [lib](lib/)
+- [test](test/)
 
 ## Tree
 

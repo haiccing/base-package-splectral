@@ -7,12 +7,12 @@
   "main": "main.js",
   "modules": [
     "pear-full-square/splectral-server",
-    "pear-full-square/mrepo-base-help",
+    "pear-full-square/mrepo-base-info",
     "pear-full-square/pkgm-base-check"
   ],
   "template": {
-    "repository": "haiccing/package-docs-package",
-    "commit": "750715e89d4f83687da348fdf48e652133a41da1"
+    "repository": "haiccing/base-docs-package",
+    "commit": "d6d99cffc82361d9c15ae86fd723045537ba63b3"
   },
   "scripts": {
     "test": "bare test/run.js"

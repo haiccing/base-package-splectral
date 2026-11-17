@@ -11,7 +11,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, renameSync, rmSync, existsSync }
 import { join, dirname } from 'bare-path'
 import { tmpdir } from 'bare-os'
 import { fileURLToPath } from 'bare-url'
-import { summaryOf, follow, serve, createStructure, launch, end, stateOf, start, stop, status, PAGE, CONFIG, PORT, HOST, ROOT, STATE } from '../index.js'
+import { summaryOf, follow, serve, createStructure, launch, end, stateOf, start, stop, status, PAGE, PORT, HOST, ROOT, STATE } from '../index.js'
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'cli.js')
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -269,11 +269,3 @@ test('the actions: start, status, stop; what start refuses', { timeout: 60000 },
   }
 })
 
-test('the config: start, stop and status, each at the mrepo itself', (t) => {
-  t.alike(Object.keys(CONFIG.actions), ['start', 'stop', 'status'])
-  for (const [name, a] of Object.entries(CONFIG.actions)) {
-    t.alike(a.uris, ['.'], `${name}: at the mrepo itself`)
-    t.ok(a.description, `${name}: described`)
-  }
-  t.alike([CONFIG.actions.start.args, 'args' in CONFIG.actions.stop, 'args' in CONFIG.actions.status], [['port?'], false, false], 'start: its port, optional; the others none')
-})
