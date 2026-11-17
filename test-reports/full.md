@@ -1,6 +1,6 @@
 # Test report: haiccing/base-package-splectral
 
-The package passed its `full` set: all 14 units, 245 of 245 tests and 1548 of 1548 asserts.
+The package passed its `full` set: all 14 units, 246 of 246 tests and 1552 of 1552 asserts.
 
 | | |
 |---|---|
@@ -8,11 +8,11 @@ The package passed its `full` set: all 14 units, 245 of 245 tests and 1548 of 15
 | Set | `full` |
 | Result | passed |
 | Units | 14 of 14 passed |
-| Tests | 245 of 245 passed |
-| Asserts | 1548 of 1548 passed |
-| Run | 2026-11-17 05:43 UTC |
+| Tests | 246 of 246 passed |
+| Asserts | 1552 of 1552 passed |
+| Run | 2026-11-17 10:05 UTC |
 | Bare | v1.36.0 |
-| Content | `ae0ad14aec74431a6b490efbe0df0608a6742e54e1a91699c5aff7dcaca11c88` |
+| Content | `296a1db8d29e9fcbc81bdf71e8eebd2f69e9d172c92f6b51c4dd9f75918d351b` |
 
 ## Units
 
@@ -23,7 +23,7 @@ The package passed its `full` set: all 14 units, 245 of 245 tests and 1548 of 15
 | `/test/code` | passed | 1 of 1 | 2 of 2 |
 | `/test/mrepo` | passed | 1 of 1 | 1 of 1 |
 | `/test/package` | passed | 1 of 1 | 1 of 1 |
-| `/test/modules/pear-full-square/mrepo-base-info` | passed | 7 of 7 | 53 of 53 |
+| `/test/modules/pear-full-square/mrepo-base-info` | passed | 8 of 8 | 57 of 57 |
 | `/test/modules/pear-full-square/mrepo-base-request` | passed | 16 of 16 | 187 of 187 |
 | `/test/modules/pear-full-square/mycelium-container-document` | passed | 1 of 1 | 8 of 8 |
 | `/test/modules/pear-full-square/mycelium-git` | passed | 144 of 144 | 777 of 777 |

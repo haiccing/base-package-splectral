@@ -207,5 +207,5 @@ the same writes give the same oids on every engine (`test/engines.test.js`).
 
 ## Tests
 
-- `npm test`: the contract suite on each engine and on the mixed backend,
+- `brittle-bare test/*.test.js` (Bare installed): the contract suite on each engine and on the mixed backend,
   the cross-engine test, on a fixture repository (bare)

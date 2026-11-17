@@ -64,5 +64,5 @@ free one. Read only: `GET`.
 
 ## Tests
 
-- `npm test`: a record summed up, a folder followed, the structure
+- `brittle-bare test/*.test.js` (Bare installed): a record summed up, a folder followed, the structure
   folded, the server asked over HTTP, the program started as a process and ended, the actions.

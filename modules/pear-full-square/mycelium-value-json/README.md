@@ -17,4 +17,4 @@ json.decode(bytes)        // { a: 1 }
 
 ## Tests
 
-- `npm test`: the unit tests
+- `brittle-bare test/*.test.js` (Bare installed): the unit tests

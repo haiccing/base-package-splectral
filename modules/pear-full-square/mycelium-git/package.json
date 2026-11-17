@@ -8,7 +8,7 @@
     "./test/*": "./test/*"
   },
   "scripts": {
-    "test": "bare ../../node_modules/brittle/cmd.js test/*.test.js"
+    "test": "brittle-bare test/*.test.js"
   },
   "license": "MIT",
   "dependencies": {
@@ -22,6 +22,7 @@
     "process": "npm:bare-node-process@1.0.1"
   },
   "devDependencies": {
+    "brittle": "4.5.0",
     "corestore": "7.16.1",
     "hyperdrive": "13.3.4"
   }
