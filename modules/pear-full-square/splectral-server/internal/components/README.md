@@ -22,7 +22,7 @@ Splectral's components as the server sees them, and the exchange with each over 
 
 ## Errors
 
-None thrown: what fails is the form's `error`. Its renderer not running
+None thrown: what fails is the form's `error`. Its program not running
 (no live state, `runtime/start`'s, for the first of its list): status
 503, at once. A page not answered in `wait` (20 s): status 504.
 
@@ -42,5 +42,5 @@ None thrown: what fails is the form's `error`. Its renderer not running
 - **The boxes are queues**: a record taken is removed, by whoever reads
   that box. What a component keeps comes later, with commit times.
 - **A watcher at each end**: the server follows each component's outbox
-  (watched, and looked at every `every`), the component's renderer its
+  (watched, and looked at every `every`), the component's program its
   inbox.

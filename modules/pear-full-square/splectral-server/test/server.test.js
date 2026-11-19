@@ -301,7 +301,7 @@ test('a component: a page asked through its Splectral inbox, its data request ru
   // their renderers' state, as runtime/start leaves it: the viewer's and the quiet one's running (this process), the stopped one's none
   const running = (folder) => { mkdirSync(join(folder, SIDE, 'packages', 'splectral'), { recursive: true }); writeFileSync(join(folder, SIDE, 'packages', 'splectral', 'r.state.json'), JSON.stringify({ pid: Bare.pid })) }
   running(viewer)
-  writeFileSync(join(dir, COMPONENTS, 'viewer.json'), JSON.stringify({ at: 'viewer', mrepo: 'local/viewer', folder: viewer, component: 'splectral/base-component-viewer', list: ['splectral/r'], installed: 'now' }))
+  writeFileSync(join(dir, COMPONENTS, 'viewer.json'), JSON.stringify({ at: 'viewer', mrepo: 'local/viewer', folder: viewer, component: 'splectral/base-component-help-viewer', list: ['splectral/r'], installed: 'now' }))
   writeFileSync(join(dir, COMPONENTS, 'quiet.json'), JSON.stringify({ at: 'quiet', mrepo: 'local/quiet', folder: join(work, 'mrepos', 'local', 'quiet'), component: 'splectral/x', list: ['splectral/r'], installed: 'now' }))
   mkdirSync(join(work, 'mrepos', 'local', 'quiet', SIDE, 'outbox'), { recursive: true })
   running(join(work, 'mrepos', 'local', 'quiet'))

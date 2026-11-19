@@ -44,7 +44,7 @@ runtime config laid (`runtime/hooks/start.haicc`, ...).
 - **What it does**: the component's own list, packages of its
   organisation, placed in that mrepo's folder on Splectral's side of it;
   its Splectral inbox and outbox made; its runtime config (its `start`
-  and `stop` hooks, its renderer started and ended) laid by the mrepo
+  and `stop` hooks, its program started and ended) laid by the mrepo
   itself (`runtime/lay`).
 - **The mrepo's folder, Splectral's side of it**: `<folder>/splectral/`:
   `packages/` (the bundles and their addons, hard linked from the store,

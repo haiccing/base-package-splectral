@@ -14,7 +14,7 @@ starts one: a Splectral component's `start` hook its renderer.
 ## Arguments
 
 1. The package, by its path in the mrepo's folder, `.bundle` left out:
-   `splectral/packages/splectral/base-package-renderer`. Required.
+   `splectral/packages/splectral/base-component-help-viewer`. Required.
 
 ## Returns
 

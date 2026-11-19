@@ -67,9 +67,9 @@ export function createComponents ({ dir, boot, root, wait = 20000, timeout = 120
       const c = known.get(at)
       if (!c) return { status: 404, form: { error: `no component here: ${at}` } }
       if (!existsSync(join(c.rec.folder, SIDE))) return { status: 404, form: { error: `not deployed: ${at}` } }
-      // its renderer, the first of its list, a program its start hook starts: not running, said at once
-      const renderer = c.rec.list?.[0]
-      if (renderer && !programState(join(c.rec.folder, SIDE, 'packages', `${renderer}.state.json`))) return { status: 503, form: { error: `not running: ${at} (its service not started? haicc splectral/${at} service/start)` } }
+      // its program, the first of its list, what its start hook starts: not running, said at once
+      const program = c.rec.list?.[0]
+      if (program && !programState(join(c.rec.folder, SIDE, 'packages', `${program}.state.json`))) return { status: 503, form: { error: `not running: ${at} (its service not started? haicc splectral/${at} service/start)` } }
       const key = guid()
       const answered = new Promise(resolve => pending.set(key, resolve))
       inboxOf(join(c.rec.folder, SIDE)).write(key, wrap(`/${c.rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, { request: 'page', path, query, base: `/${at}` }, key) }))

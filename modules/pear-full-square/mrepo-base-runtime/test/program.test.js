@@ -16,9 +16,9 @@ const folder = () => mkdtempSync(join(tmpdir(), 'program-'))
 const here = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 test('programAt: a package by its path in the mrepo\'s folder; nothing outside it', (t) => {
-  const p = programAt('/m', 'splectral/packages/splectral/base-package-renderer')
-  t.is(p.bundle, '/m/splectral/packages/splectral/base-package-renderer.bundle')
-  t.is(p.state, '/m/splectral/packages/splectral/base-package-renderer.state.json')
+  const p = programAt('/m', 'splectral/packages/splectral/base-component-help-viewer')
+  t.is(p.bundle, '/m/splectral/packages/splectral/base-component-help-viewer.bundle')
+  t.is(p.state, '/m/splectral/packages/splectral/base-component-help-viewer.state.json')
   t.is(programAt('/m', 'a/b.bundle').path, 'a/b', '.bundle left out')
   t.exception(() => programAt('/m', ''), /missing argument: package/)
   t.exception(() => programAt('/m', '../x'), /not a package in the mrepo's folder/)

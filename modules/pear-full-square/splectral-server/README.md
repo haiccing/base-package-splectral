@@ -24,10 +24,10 @@ haicc splectral splectral/start
 haicc splectral splectral/start 4401
 haicc splectral splectral/status
 haicc splectral splectral/stop
-haicc splectral boot/deploy viewer haiccing/base-package-service
-haicc splectral splectral/install viewer splectral/base-component-viewer
-haicc splectral/viewer service/initialise
-haicc splectral/viewer service/start
+haicc splectral boot/deploy help haiccing/base-package-service
+haicc splectral splectral/install help splectral/base-component-help-viewer
+haicc splectral/help service/initialise
+haicc splectral/help service/start
 ```
 
 ## The page

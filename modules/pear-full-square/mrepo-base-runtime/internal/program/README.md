@@ -10,7 +10,7 @@ a package's `/run` entry, its bundle's default: started as `bare
 ## Signature
 
 - `programAt(dir, path)`: the package by its path in the mrepo's folder
-  (`splectral/packages/splectral/base-package-renderer`, `.bundle` left
+  (`splectral/packages/splectral/base-component-help-viewer`, `.bundle` left
   out). -> `{ path, bundle, state }`: the bundle at `<dir>/<path>.bundle`,
   its state beside it, `<dir>/<path>.state.json`.
 - `stateOf(file)`: the state the program wrote.

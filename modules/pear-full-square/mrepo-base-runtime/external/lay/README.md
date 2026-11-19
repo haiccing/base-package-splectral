@@ -15,7 +15,7 @@ Splectral's components are made so (`splectral/install`).
 ## Arguments
 
 1. The package, by its path in the mrepo's folder, `.bundle` left out:
-   `splectral/packages/splectral/base-component-viewer`. Required.
+   `splectral/packages/splectral/base-component-help-viewer`. Required.
 
 ## Returns
 

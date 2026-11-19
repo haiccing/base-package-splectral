@@ -52,23 +52,23 @@ own.
 A component is an app: an mrepo Splectral deploys, in two halves.
 
 ```
-haicc splectral boot/deploy viewer haiccing/base-package-service
-haicc splectral splectral/install viewer splectral/base-component-viewer
-haicc splectral/viewer service/initialise
-haicc splectral/viewer service/start
+haicc splectral boot/deploy help haiccing/base-package-service
+haicc splectral splectral/install help splectral/base-component-help-viewer
+haicc splectral/help service/initialise
+haicc splectral/help service/start
 ```
 
 The first half is haicc's: a plain service-managed mrepo. The second is
 Splectral's: the component's packages, all of its own organisation,
 placed in that mrepo's folder (`splectral/`), its Splectral inbox and
 outbox beside them, its `start` and `stop` hooks laid by the mrepo
-itself; its service started, its renderer runs. The browser asks
-`/viewer/<path>`: the server writes the page request into the
+itself; its service started, its program runs. The browser asks
+`/help/<path>`: the server writes the page request into the
 component's Splectral inbox and answers with the page that comes back
 in its outbox; what the component asks for meanwhile (`info/get` at
 `docs`, say) the server runs as a terminal does. Commands for the
 component as an mrepo go through haicc, as to any: `haicc
-splectral/viewer service/stop`, `haicc splectral boot/teardown viewer`.
+splectral/help service/stop`, `haicc splectral boot/teardown help`.
 
 ## Config
 
