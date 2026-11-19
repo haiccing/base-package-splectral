@@ -7,7 +7,7 @@ continuation, and the `haicc` command sends it on, `haicc/script`, to
 the deployed mrepo, where its lines are executed.
 
 ```
-haicc . boot/deploy splectral base-package-splectral --flags continuation=start
+haicc . boot/deploy splectral haiccing/base-package-splectral --flags continuation=start
 ```
 
 | script | |

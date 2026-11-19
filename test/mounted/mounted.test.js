@@ -54,12 +54,15 @@ test('its config, value by value', (t) => {
   t.is(cfg.package, 'haiccing/base-package-splectral', 'the package that brings it')
   t.ok(cfg.description, 'its description')
   t.alike(Object.keys(cfg).sort(), ['actions', 'description', 'package'], 'nothing else: no default action, not behind a state')
-  t.alike(Object.keys(cfg.actions).sort(), ['start', 'status', 'stop'], 'start, stop and status')
-  for (const [name, a] of Object.entries(cfg.actions)) {
+  t.alike(Object.keys(cfg.actions).sort(), ['install', 'start', 'status', 'stop'], 'start, stop, status and install')
+  for (const name of ['start', 'stop', 'status']) {
+    const a = cfg.actions[name]
     t.alike(a.uris, ['.'], `${name}: at the mrepo itself`)
     t.ok(a.description, `${name}: its description`)
     t.absent('states' in a || 'target' in a, `${name}: no states, no target`)
   }
+  const install = cfg.actions.install
+  t.alike([install.uris, install.target, install.args, 'states' in install, !!install.description], [['**'], true, ['package'], false, true], 'install: at a position below main, a target needed, the component its argument; no states')
   t.alike([cfg.actions.start.args, 'args' in cfg.actions.stop, 'args' in cfg.actions.status], [['port?'], false, false], 'start: a port, optional; stop and status: no argument')
 })
 
@@ -74,13 +77,17 @@ test('the mrepo it defines: its list of packages, itself last; its hooks, file b
     'haiccing/base-package-runtime',
     'haiccing/base-package-info',
     'haiccing/base-package-protocol',
+    'haiccing/base-package-boot',
     'haiccing/base-package-service',
+    'haiccing/base-package-haicc',
     'haiccing/base-package-splectral'
-  ], 'the runtime, info, the protocol protocol, the service, this package: deployed as the target, it makes the Splectral mrepo')
+  ], 'the runtime, info, the protocol protocol, boot (its components deployed), the service, haicc (commands sent on to them), this package: deployed as the target, it makes the Splectral mrepo')
   t.alike(brought, {
-    'boot/1': ['protocol/activate', '.', 'info'],
-    'boot/2': ['protocol/activate', '.', 'runtime'],
-    'boot/3': ['protocol/activate', '.', 'service'],
+    'boot/1': ['protocol/activate', '.', 'boot'],
+    'boot/2': ['protocol/activate', '.', 'haicc'],
+    'boot/3': ['protocol/activate', '.', 'info'],
+    'boot/4': ['protocol/activate', '.', 'runtime'],
+    'boot/5': ['protocol/activate', '.', 'service'],
     'initialise/1': ['info/extract'],
     'start/1': ['protocol/activate', '.', 'splectral'],
     'start/2': ['splectral/start'],
@@ -107,6 +114,13 @@ test('the actions: nothing running; what start refuses; its server started from 
     const exec = execution({ dir, work })
     t.alike(await act('status', exec), { running: false }, 'status: not running')
     t.alike(await act('stop', exec), { splectral: 'stopped', pid: null }, 'stop: none running, no error')
+    // install: what it refuses before anything is placed (installed for
+    // real: the haicc command's end to end test, splectral.sh)
+    const reads = { ...exec, find: async () => null }
+    await t.exception(act('install', reads, { uri: ['main'], args: ['splectral/x'] }), /missing argument: target/)
+    await t.exception(act('install', reads, { uri: ['main', 'stream'], args: ['splectral/x'] }), /not a position for a component: stream/, 'the server\'s own paths')
+    await t.exception(act('install', reads, { uri: ['main', 'a/b'], args: ['splectral/x'] }), /not a position for a component: a\/b/, 'one name, at the top')
+    await t.exception(act('install', reads, { uri: ['main', 'viewer'], args: ['splectral/x'] }), /not deployed: viewer \(boot\/deploy viewer haiccing\/base-package-service first\)/, 'nothing deployed there')
     await t.exception(act('start', exec, { args: ['web'] }), /not a port: web/)
     await t.exception(act('start', execution({ dir, work: null })), /no work folder in the context/)
     writeFileSync(join(work, 'mrepo.json'), JSON.stringify({ storage: 'filesystem', name: 'boot' }))
@@ -136,6 +150,6 @@ test('the actions: nothing running; what start refuses; its server started from 
 })
 
 test('every action the config names was run here', (t) => {
-  t.alike([...ran].sort(), Object.keys(mounted.protocols.splectral.actions).sort(), 'start, status and stop')
+  t.alike([...ran].sort(), Object.keys(mounted.protocols.splectral.actions).sort(), 'start, status, stop and install')
   t.alike([...logged].sort(), Object.keys(mounted.protocols.splectral.actions).sort(), 'and each wrote into the request\'s log as it ran: an action that logs nothing fails this')
 })

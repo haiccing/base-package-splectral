@@ -12,13 +12,14 @@ are checked here, without an mrepo.
   every action configured and no other.
 - **Its config, value by value**: the package that brings it; `start`,
   `stop` and `status`, each at the mrepo itself; a port for `start`,
-  optional; no state.
+  optional; `install` at a position below `main`, a target needed, the
+  component its argument; no state.
 - **The mrepo it defines**: its list of packages, itself last; its
   hooks, file by file, each with its transition and its command, and
   their order within `start` and `stop`; the state it starts in; its
   script `start`. A hook file not named in the test fails it.
 - **Its actions**, on a minimal execution: nothing running; what `start`
-  refuses; then its server started from the package's own `run.js` as a
+  refuses; what `install` refuses before anything is placed; then its server started from the package's own `run.js` as a
   process of its own, its page and its lines asked over HTTP, its
   status, and ended.
 - **Nothing forgotten**: the last test fails when the config names an
@@ -29,5 +30,6 @@ are checked here, without an mrepo.
 
 The Splectral mrepo deployed and running: its hooks fired by the
 service, its server started from its bundle in the mrepo's packages,
-the commands of a real install on its page. That is the `haicc`
-command's end to end test.
+the commands of a real install on its page; a component installed and
+its page served. Those are the `haicc` command's end to end tests
+(`run.sh`, `splectral.sh`).

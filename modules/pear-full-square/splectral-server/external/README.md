@@ -7,3 +7,4 @@ The splectral protocol's actions.
 - [start](start/)
 - [stop](stop/)
 - [status](status/)
+- [install](install/)

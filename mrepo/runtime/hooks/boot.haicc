@@ -1,4 +1,6 @@
 # boot: run by the runtime as it starts, a line a command
+protocol/activate . boot
+protocol/activate . haicc
 protocol/activate . info
 protocol/activate . runtime
 protocol/activate . service

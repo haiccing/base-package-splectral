@@ -11,3 +11,4 @@ The methods the actions and the server's program use, never requested.
 - [structure](structure/)
 - [page](page/)
 - [process](process/)
+- [components](components/)

@@ -2,12 +2,12 @@
 
 Splectral's server on an mrepo: an install and its commands shown in a browser as they complete.
 
-Splectral is for seeing a running system. This is its first step on the
-mrepos: one page, one subscription. A Splectral mrepo is deployed
-beside the host; started, it runs a server that follows the root
-mrepo's outbox folder, where every command of the install ends as a
-completed record. The page shows the install as a tree and lists the
-commands, the newest first. Offered by `haiccing/base-package-splectral`.
+Splectral is an app platform: an mrepo of its own beside the host, its
+components apps. Started, it runs a server, the data layer: it follows
+the root mrepo's outbox folder and shows the install as a tree and its
+commands; it routes the browser to its components, each at
+`/<position>/`, and runs the data requests they make. Offered by
+`haiccing/base-package-splectral`.
 
 `cli.js` is the server as a program: what `start` starts.
 
@@ -24,6 +24,10 @@ haicc splectral splectral/start
 haicc splectral splectral/start 4401
 haicc splectral splectral/status
 haicc splectral splectral/stop
+haicc splectral boot/deploy viewer haiccing/base-package-service
+haicc splectral splectral/install viewer splectral/base-component-viewer
+haicc splectral/viewer service/initialise
+haicc splectral/viewer service/start
 ```
 
 ## The page
@@ -41,7 +45,7 @@ whole, its log in it. New lines arrive as the commands complete.
 ## What it serves
 
 On `127.0.0.1`, port 4400 unless another is given; that one taken, a
-free one. Read only: `GET`.
+free one. `GET` only.
 
 | | |
 |---|---|
@@ -50,11 +54,14 @@ free one. Read only: `GET`.
 | `/record/<key>` | one record whole, as its folder holds it |
 | `/structure` | `{ root, nodes }`: the install's mrepos, a tree, each with its state |
 | `/stream` | each new line as it arrives, and the structure when it changed (Server-Sent Events) |
+| `/<position>/<path>` | a component's page: asked of it through its Splectral inbox (`internal/components`) |
 
 ## Rules
 
-- **It reads, nothing else**: it sends no command and writes nowhere but
-  its own state, `splectral.json` in its mrepo's folder.
+- **The data layer**: it sends the commands its components ask for, as
+  a terminal sends them, into the root mrepo's inbox; it writes its own
+  state, `splectral.json` in its mrepo's folder, and the components'
+  Splectral inboxes. It interprets nothing of a component's.
 - **One subscription**: a folder of completed records. What it follows
   is said in its status and on the page.
 - **Its own process**, ended by `stop`, and by itself when its mrepo's
@@ -65,4 +72,5 @@ free one. Read only: `GET`.
 ## Tests
 
 - `brittle-bare test/*.test.js` (Bare installed): a record summed up, a folder followed, the structure
-  folded, the server asked over HTTP, the program started as a process and ended, the actions.
+  folded, the server asked over HTTP, the program started as a process and ended, the actions, a
+  component's page asked through its boxes, its data request run.

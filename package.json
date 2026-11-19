@@ -5,6 +5,7 @@
   "license": "MIT",
   "type": "module",
   "main": "main.js",
+  "platform": "splectral",
   "modules": [
     "pear-full-square/splectral-server",
     "pear-full-square/mrepo-base-info",

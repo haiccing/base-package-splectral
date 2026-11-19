@@ -1,0 +1,46 @@
+# components
+
+Splectral's components as the server sees them, and the exchange with each over its Splectral inbox and outbox.
+
+## Signature
+
+- `createComponents({ dir, boot, root, wait, timeout, every })`: the
+  components `splectral/install` recorded in Splectral's folder `dir`
+  (`components/<position>.json`), each one's outbox followed; `boot` the
+  root mrepo's folder, its inbox the one gateway; `root` its unique URI.
+- `ask({ boot, root, form, timeout })`: a data request run.
+- `recordOf(dir, position)`: where a component's record is.
+- `SIDE` (`splectral`), `COMPONENTS` (`components`), `TOPIC`
+  (`/splectral`, where a completed form goes back).
+
+## Returns
+
+- `createComponents`: `{ has(position), list(), page(position, path,
+  query), stop() }`; `page` answers `{ status, form }`, the form completed
+  with its `output`, the page, or its `error`.
+- `ask`: `{ output }` or `{ error }`.
+
+## Errors
+
+None thrown: what fails is the form's `error`. Its renderer not running
+(no live state, `runtime/start`'s, for the first of its list): status
+503, at once. A page not answered in `wait` (20 s): status 504.
+
+## Design
+
+- **What passes is fixed**, the same for every component, request records
+  as documented (a form in an envelope, its key), written whole into a
+  folder:
+  - a page asked for, into the component's Splectral inbox:
+    `{ request: "page", path, query, base }`, `base` the
+    component's own address, `/<position>`; its completed form back in its
+    Splectral outbox, `output` the page's HTML;
+  - data asked for, by the component, in its outbox: `{ request: "data",
+    at, command }`: run as a terminal runs a command, into the root
+    mrepo's inbox, tagged as from outside (`haicc <at> <command>`), its
+    completed form written into the component's inbox under the same key.
+- **The boxes are queues**: a record taken is removed, by whoever reads
+  that box. What a component keeps comes later, with commit times.
+- **A watcher at each end**: the server follows each component's outbox
+  (watched, and looked at every `every`), the component's renderer its
+  inbox.

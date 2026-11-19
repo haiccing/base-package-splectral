@@ -11,12 +11,22 @@ modules for linux-x64, each with its version, licence and source in
 
 ## Links
 
+- [mrepo-base-boot](pear-full-square/mrepo-base-boot/)
+- [mrepo-base-crud](pear-full-square/mrepo-base-crud/)
+- [mrepo-base-execute](pear-full-square/mrepo-base-execute/)
 - [mrepo-base-info](pear-full-square/mrepo-base-info/)
+- [mrepo-base-protocol](pear-full-square/mrepo-base-protocol/)
 - [mrepo-base-request](pear-full-square/mrepo-base-request/)
+- [mrepo-base-runtime](pear-full-square/mrepo-base-runtime/)
+- [mrepo-base-service](pear-full-square/mrepo-base-service/)
+- [mrepo-base-xpath](pear-full-square/mrepo-base-xpath/)
 - [mycelium-container-document](pear-full-square/mycelium-container-document/)
 - [mycelium-git](pear-full-square/mycelium-git/)
 - [mycelium-uri](pear-full-square/mycelium-uri/)
 - [mycelium-value-json](pear-full-square/mycelium-value-json/)
 - [mycelium-xpath](pear-full-square/mycelium-xpath/)
+- [p2p-mrepo](pear-full-square/p2p-mrepo/)
+- [p2p-replicate](pear-full-square/p2p-replicate/)
+- [p2p-store](pear-full-square/p2p-store/)
 - [pkgm-base-check](pear-full-square/pkgm-base-check/)
 - [splectral-server](pear-full-square/splectral-server/)

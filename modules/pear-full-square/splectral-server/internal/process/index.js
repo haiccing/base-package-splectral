@@ -39,7 +39,7 @@ export async function program (argv) {
   const outbox = arg('outbox')
   if (!dir || !outbox) throw new Error('--dir=<the mrepo\'s folder> --outbox=<the folder to follow> [--root=<unique URI>] [--port=<n>] [--runtime=<pid>]')
   const runtime = arg('runtime') ? Number(arg('runtime')) : null
-  const s = await serve({ outbox, root: arg('root') ?? ROOT, port: arg('port') === undefined ? PORT : Number(arg('port')) })
+  const s = await serve({ outbox, dir, root: arg('root') ?? ROOT, port: arg('port') === undefined ? PORT : Number(arg('port')) })
   // its state, written whole and renamed into place
   const file = join(dir, STATE)
   writeFileSync(`${file}.new`, JSON.stringify({ pid: process.pid, url: s.url, port: s.port, outbox, root: s.root, started: new Date().toISOString() }) + '\n')

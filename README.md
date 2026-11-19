@@ -1,19 +1,19 @@
 # base-package-splectral
 
-Splectral: an install and its commands shown in a browser as they complete, from an mrepo of its own beside the host.
+Splectral, an app platform beside the host: the install shown in a browser, its components served.
 
-Splectral is for seeing a running system. Deployed by the boot mrepo
-beside the host, the Splectral mrepo runs a server once it is started.
-The server follows the boot mrepo's outbox folder, where every command
-of the install ends as a completed record, and serves one page: the
-install as a tree, and the commands, the newest first. It reads only:
-it sends no command.
+Splectral is for seeing and working with a running system. Deployed by
+the boot mrepo beside the host, it runs a server once it is started, the
+data layer. The server follows the boot mrepo's outbox folder and serves
+its page: the install as a tree, and its commands. Its components are
+apps, each served at `/<position>/` (below, "Components").
 
 ## Links
 
 - [start](modules/pear-full-square/splectral-server/external/start/)
 - [stop](modules/pear-full-square/splectral-server/external/stop/)
 - [status](modules/pear-full-square/splectral-server/external/status/)
+- [install](modules/pear-full-square/splectral-server/external/install/)
 - [howto](howto/)
 - [mrepo](mrepo/)
 - [scripts](scripts/)
@@ -26,7 +26,9 @@ it sends no command.
 - [base-package-runtime](../base-package-runtime/)
 - [base-package-info](../base-package-info/)
 - [base-package-protocol](../base-package-protocol/)
+- [base-package-boot](../base-package-boot/)
 - [base-package-service](../base-package-service/)
+- [base-package-haicc](../base-package-haicc/)
 
 ## What it shows
 
@@ -45,16 +47,40 @@ sends, on this machine. A command the mrepos send among themselves (a
 hook) is in the log of the command that caused it, not a line of its
 own.
 
+## Components
+
+A component is an app: an mrepo Splectral deploys, in two halves.
+
+```
+haicc splectral boot/deploy viewer haiccing/base-package-service
+haicc splectral splectral/install viewer splectral/base-component-viewer
+haicc splectral/viewer service/initialise
+haicc splectral/viewer service/start
+```
+
+The first half is haicc's: a plain service-managed mrepo. The second is
+Splectral's: the component's packages, all of its own organisation,
+placed in that mrepo's folder (`splectral/`), its Splectral inbox and
+outbox beside them, its `start` and `stop` hooks laid by the mrepo
+itself; its service started, its renderer runs. The browser asks
+`/viewer/<path>`: the server writes the page request into the
+component's Splectral inbox and answers with the page that comes back
+in its outbox; what the component asks for meanwhile (`info/get` at
+`docs`, say) the server runs as a terminal does. Commands for the
+component as an mrepo go through haicc, as to any: `haicc
+splectral/viewer service/stop`, `haicc splectral boot/teardown viewer`.
+
 ## Config
 
-The `splectral` protocol's, in `protocol.js`: every action at the mrepo
-itself, `.`.
+The `splectral` protocol's, in `protocol.js`: `start`, `stop` and
+`status` at the mrepo itself, `.`; `install` at a position below `main`.
 
 | action | arguments | |
 |---|---|---|
 | `start` | the port, optional: 4400; `0` any free one | running already: left as it is |
 | `stop` | none | the server ended |
 | `status` | none | whether it runs, its URL, the folder it follows |
+| `install` | the component, `<org>/<package>`; at the position of an mrepo it deployed | its packages laid on top: the second half of a dual install |
 
 The service's `start` and `stop` do the first two by their hooks; the
 actions are for a server on another port, or started again.

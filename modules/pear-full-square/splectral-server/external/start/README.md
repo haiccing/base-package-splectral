@@ -10,8 +10,8 @@ unique URI: the root of the structure it shows.
 
 ## Signature
 
-`start(exec, { args })`: requested as `splectral/start [<port>]`, at
-the mrepo itself.
+`start(exec, { args })`: requested as `splectral/start . [<port>]`, at
+the mrepo itself: `.` its target, as every action's first argument.
 
 ## Arguments
 
