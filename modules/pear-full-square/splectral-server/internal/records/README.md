@@ -9,10 +9,8 @@ or its error, its log.
 ## Signature
 
 - `summaryOf(envelope)`: a record's line.
-- `follow(folder, each, { every, avro })`: `each(envelope, file)` for
-  every record in the folder, the oldest first, then for each that
-  arrives. JSON records (`.json`); with `avro`, a decoder (bytes to the
-  envelope), AVRO ones too (`.avro`).
+- `follow(folder, each, { every })`: `each(envelope, file)` for every
+  record in the folder, the oldest first, then for each that arrives.
 
 ## Returns
 

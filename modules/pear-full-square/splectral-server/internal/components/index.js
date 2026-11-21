@@ -5,10 +5,7 @@ import fs, { existsSync, readdirSync, readFileSync, mkdirSync, rmSync } from 'ba
 import { join } from 'bare-path'
 import { record, wrap, guid, inboxOf } from 'mrepo-base-request'
 import { programState } from 'mrepo-base-runtime'
-import { documents } from 'mycelium-container-document'
-import { registry } from 'mycelium-value-avro'
 import { follow } from '../records/index.js'
-import { encodeAnswer, decodeAnswer } from '../typed/index.js'
 
 // A component's Splectral side, in its mrepo's folder: its packages, its
 // inbox and outbox, what was installed (component.json).
@@ -18,13 +15,6 @@ export const COMPONENTS = 'components'
 export const recordOf = (dir, at) => join(dir, COMPONENTS, `${at}.json`)
 // Where a completed form goes back: the topic of Splectral's requests.
 export const TOPIC = '/splectral'
-
-// A component's inbox for typed answers: its records AVRO, by the
-// install's registry.
-export const typedBox = rec => {
-  const reg = registry(rec.schemas)
-  return documents(join(rec.folder, SIDE, 'inbox'), { extension: 'avro', encode: envelope => encodeAnswer(reg, envelope), decode: bytes => decodeAnswer(reg, bytes) })
-}
 
 const completed = form => form && typeof form === 'object' && ('output' in form || 'error' in form)
 
@@ -39,14 +29,7 @@ export function createComponents ({ dir, boot, root, mrepos = () => ({ version: 
   // A component's record read; its outbox followed: a page answered, a
   // data request run, the install's mrepos said. Each record taken is
   // removed: the boxes are queues.
-  // A data answer asked for typed (`as`), where the component knows the
-  // install's registry (its record's `schemas`): AVRO (internal/typed);
-  // else JSON, as every other record.
-  const back = (rec, key, form) => {
-    const envelope = wrap(`/${rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, form, key) })
-    if (typeof form.as === 'string' && rec.schemas) return typedBox(rec).write(key, envelope)
-    inboxOf(join(rec.folder, SIDE)).write(key, envelope)
-  }
+  const back = (rec, key, form) => inboxOf(join(rec.folder, SIDE)).write(key, wrap(`/${rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, form, key) }))
   const take = (at, rec) => (envelope, file) => {
     const form = envelope?.value?.value
     const out = join(rec.folder, SIDE, 'outbox', file)

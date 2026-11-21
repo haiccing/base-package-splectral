@@ -13,4 +13,3 @@ The methods the actions and the server's program use, never requested.
 - [page](page/)
 - [process](process/)
 - [components](components/)
-- [typed](typed/)

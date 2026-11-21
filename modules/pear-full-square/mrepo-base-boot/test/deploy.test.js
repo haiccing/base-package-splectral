@@ -13,8 +13,7 @@ import { record, wrap, guid } from 'mrepo-base-request'
 import { ask } from 'mrepo-base-runtime'
 import { spawn, spawnSync } from 'bare-subprocess'
 import process from 'bare-process'
-import { registry } from 'mycelium-value-avro'
-import { build, deploy, teardown, redeploy, place, parseSource, lay, schemasOf } from '../index.js'
+import { build, deploy, teardown, redeploy, place, parseSource, lay } from '../index.js'
 
 const lj = (dir, mode) => { mkdirSync(dir, { recursive: true }); writeFileSync(join(dir, 'layer.json'), JSON.stringify({ mode, description: 'test' })) }
 const sha256 = b => crypto.createHash('sha256').update(b).digest('hex')
@@ -113,39 +112,13 @@ test('documents: sources: every package the sources offer beyond the list placed
   } finally { for (const d of [pkgs, into, dir, store]) rmSync(d, { recursive: true, force: true }) }
 })
 
-test('schemas: each package placed registers the schemas it carries, its own and its modules\', in the install\'s registry', async (t) => {
-  const pkgs = mkdtempSync(join(tmpdir(), 'schemas-src-'))
-  const store = mkdtempSync(join(tmpdir(), 'schemas-store-'))
-  const dir = mkdtempSync(join(tmpdir(), 'schemas-dir-'))
-  try {
-    const answer = { type: 'record', name: 'haiccing.base.answer', fields: [{ name: 'a', type: 'string' }] }
-    const inner = { type: 'record', name: 'pearFullSquare.someModule.thing', fields: [{ name: 'n', type: 'long' }] }
-    source(pkgs, {
-      'haiccing/base': { 'runtime/layer.json': { mode: 'atomic' }, '/schemas/answer.json': answer, '/modules/pear-full-square/some-module/schemas/thing.json': inner, '/schemas/README.md': '# not one' },
-      'haiccing/bad': { '/schemas/bad.json': { type: 'record', name: 'X', fields: [{ name: 'a', type: 'nope' }] } }
-    })
-    const sources = [parseSource(`folder:${pkgs}`)]
-    lj(join(dir, 'packages'), 'replicated')
-    const { dir: built } = await build({ from: dir, work: store, name: 'base' })
-    const { schemas } = await place({ dir: built, store, sources, list: ['haiccing/base'] })
-    t.alike(schemas['haiccing/base'].map(s => s.uri), ['pear-full-square/some-module/thing', 'haiccing/base/answer'], 'its modules\' and its own, by URI')
-    t.ok(schemas['haiccing/base'].every(s => s.added && /^[0-9a-f]{16}$/.test(s.fingerprint)), 'each by its fingerprint')
-    const reg = registry(schemasOf(store))
-    t.is(reg.named('haiccing/base/answer').length, 1, 'in the install\'s registry, read by another')
-    const again = await place({ dir: built, store, sources, list: ['haiccing/base'] })
-    t.absent(again.schemas['haiccing/base'].some(s => s.added), 'placed again: the same entries')
-    await t.exception(place({ dir: built, store, sources, list: ['haiccing/bad'] }), /not a schema: haiccing\/bad \/schemas\/bad.json/, 'not valid AVRO: said, with where')
-  } finally { for (const d of [pkgs, store, dir]) rmSync(d, { recursive: true, force: true }) }
-})
-
 test('deploy from a target package\'s list, placed by its unique URI, its link recorded; redeploy; teardown; a script answered as a continuation; the mrepo registry, several torn down; a swarm\'s node', async (t) => {
   const work = mkdtempSync(join(tmpdir(), 'deploy-'))
   const pkgs = mkdtempSync(join(tmpdir(), 'deploy-src-'))
   try {
     source(pkgs, {
       'haiccing/base': { 'runtime/layer.json': { mode: 'atomic' }, 'runtime/kind.json': { kind: 'base' }, 'runtime/hooks/boot/base.json': ['x/y'], 'inbox/layer.json': { mode: 'non-atomic' } },
-      'haiccing/target': { '/scripts/start.haicc': 'service/initialise\nservice/start\n', '/scripts/broken.haicc': '# nothing\n', 'main/layer.json': { mode: 'atomic' }, 'runtime/kind.json': { kind: 'target' }, 'packages/layer.json': { mode: 'replicated', packages: ['haiccing/base', 'haiccing/target'] } },
-      'haiccing/solution': { '/scripts/solution.haicc': 'boot/deploy one haiccing/target\n', '/scripts/start.haicc': 'service/start\n', 'main/layer.json': { mode: 'atomic' }, 'packages/layer.json': { mode: 'replicated', packages: ['haiccing/base', 'haiccing/solution'] } }
+      'haiccing/target': { '/scripts/start.haicc': 'service/initialise\nservice/start\n', '/scripts/broken.haicc': '# nothing\n', 'main/layer.json': { mode: 'atomic' }, 'runtime/kind.json': { kind: 'target' }, 'packages/layer.json': { mode: 'replicated', packages: ['haiccing/base', 'haiccing/target'] } }
     })
     const dir = await parent(work, [parseSource(`folder:${pkgs}`)])
     const backend = p2pgitBackend(join(dir, '.git'), { fs })
@@ -221,16 +194,6 @@ test('deploy from a target package\'s list, placed by its unique URI, its link r
     t.is(exec.continued, null, 'not asked for: none')
     await teardown(exec, { uri: ['main', 'scripted'] })
     await commit()
-    // a solution: its script answered with every deploy of it, at this mrepo's own position
-    await t.exception(deploy(exec, { uri: ['main', 'bench'], args: ['haiccing/solution'], flags: { continuation: 'start' } }), /a solution goes on with its own script, solution: no continuation/, 'a continuation asked for besides: refused')
-    t.absent(existsSync(join(work, 'mrepos', 'local', 'bench')), 'nothing built')
-    exec.continued = null
-    const sol = await deploy(exec, { uri: ['main', 'bench'], args: ['haiccing/solution'] })
-    await commit()
-    t.alike([sol.deployed, sol.mrepo, sol.solution], ['bench', 'local/bench', 'solution'], 'deployed as any mrepo, by its name; said a solution')
-    t.alike(exec.continued, { at: '.', script: 'boot/deploy one haiccing/target\n' }, 'its script, solution, answered as the continuation, for the deployer\'s own position: what it deploys lands beside it')
-    await teardown(exec, { uri: ['main', 'bench'] })
-    await commit()
     // the mrepo registry, where main has the node `registry` (the boot mrepo): an mrepo's node by its unique URI
     exec.put('/main/registry/.node.json', Buffer.from('{}\n'))
     await commit()
@@ -284,49 +247,6 @@ test('deploy from a target package\'s list, placed by its unique URI, its link r
     t.alike(await teardown(exec, { uri: ['main', 'registry/swarm-1/*'] }), [{ tornDown: 'swarms/swarm-1/node-1' }], 'torn down through the registry, at its position')
     await commit()
     t.alike([existsSync(join(work, 'mrepos', 'swarm-1', 'node-1')), await repo.find('/main/swarms/swarm-1/node-1/.node.json'), json(await repo.read('/main/swarms/swarm-1/.node.json'))], [false, null, { kind: 'swarm' }], 'gone, its swarm\'s node left')
-    // a howtos node: the root of a namespace, the path below it the unique URI
-    exec.put('/main/howtos/.node.json', Buffer.from('{"kind":"howtos"}\n'))
-    for (const p of ['haiccing', 'haiccing/base-package-crud', 'haiccing/base-package-crud/howto', 'haiccing/base-package-crud/howto/query']) exec.put(`/main/howtos/${p}/.node.json`, Buffer.from('{}\n'))
-    await commit()
-    const h = await deploy(exec, { uri: ['main', 'howtos/haiccing/base-package-crud/howto/query/boot'], args: ['haiccing/target'] })
-    await commit()
-    const HOWTO = 'haiccing/base-package-crud/howto/query'
-    t.alike([h.deployed, h.mrepo], ['howtos/' + HOWTO + '/boot', HOWTO + '/boot'], 'below a howtos node: its unique URI the path below it, a how-to\'s key and its name')
-    t.ok(existsSync(join(work, 'mrepos', ...HOWTO.split('/'), 'boot', '.git')), 'placed by it: <work>/mrepos/' + HOWTO + '/boot')
-    t.alike(json(await openRepo(p2pgitBackend(join(work, 'mrepos', ...HOWTO.split('/'), 'boot', '.git'), { fs })).read('/runtime/mrepo.json')), { uri: HOWTO + '/boot' }, 'its identity, the path')
-    t.alike(json(await repo.read(`/main/registry/${HOWTO}/boot/.node.json`)).at, 'howtos/' + HOWTO + '/boot', 'in the mrepo registry by its path')
-    t.alike(await Promise.all(['haiccing', 'haiccing/base-package-crud', 'haiccing/base-package-crud/howto', HOWTO].map(async p => json(await repo.read(`/main/registry/${p}/.node.json`)))), [{}, {}, {}, {}], 'each node above it in the registry there, an empty document')
-    // the rule: a unique URI never a prefix of another's
-    await t.exception(deploy(exec, { uri: ['main', 'howtos/haiccing/base-package-crud/howto'], args: ['haiccing/target'] }), /exists locally/, 'a namespace\'s node: data, no target')
-    exec.put('/main/plain2/.node.json', Buffer.from('{}\n'))
-    exec.put('/main/plain2/q/.node.json', Buffer.from('{"kind":"howtos"}\n'))
-    exec.put('/main/plain2/q/haiccing/.node.json', Buffer.from('{}\n'))
-    exec.put('/main/plain2/q/haiccing/base-package-crud/.node.json', Buffer.from('{}\n'))
-    exec.put('/main/plain2/q/haiccing/base-package-crud/howto/.node.json', Buffer.from('{}\n'))
-    exec.put('/main/plain2/q/haiccing/base-package-crud/howto/query/.node.json', Buffer.from('{}\n'))
-    exec.put('/main/plain2/q/haiccing/base-package-crud/howto/query/boot/.node.json', Buffer.from('{}\n'))
-    exec.put('/main/other/.node.json', Buffer.from('{"kind":"howtos"}\n'))
-    exec.put('/main/other/haiccing/.node.json', Buffer.from('{}\n'))
-    exec.put('/main/plain2/q/local/.node.json', Buffer.from('{}\n'))
-    await commit()
-    await t.exception(deploy(exec, { uri: ['main', 'plain2/q/haiccing/base-package-crud/howto/query/boot/inner'], args: ['haiccing/target'] }), /a unique URI is never a prefix of another's: haiccing\/base-package-crud\/howto\/query\/boot is haiccing\/base-package-crud\/howto\/query\/boot\/inner's/, 'an mrepo above it: refused, the two said')
-    await t.exception(deploy(exec, { uri: ['main', 'other/haiccing/base-package-crud'], args: ['haiccing/target'] }), /a unique URI is never a prefix of another's: haiccing\/base-package-crud is haiccing\/base-package-crud\/howto's/, 'mrepos below it: refused')
-    t.absent(existsSync(join(work, 'mrepos', ...HOWTO.split('/'), 'boot', 'inner')), 'nothing built inside another\'s folder')
-    await t.exception(deploy(exec, { uri: ['main', 'plain2/q/boot'], args: ['haiccing/target'] }), /not a unique URI: boot \(a namespace and a name at least/, 'one name: no unique URI')
-    await t.exception(deploy(exec, { uri: ['main', 'plain2/q/local/x'], args: ['haiccing/target'] }), /not a unique URI: local\/x/, 'local: the namespace of what is in none')
-    t.alike(await teardown(exec, { uri: ['main', `registry/${HOWTO}/*`] }), [{ tornDown: 'howtos/' + HOWTO + '/boot' }], 'a how-to\'s mrepos torn down through the registry, by its key')
-    await commit()
-    t.absent(existsSync(join(work, 'mrepos', ...HOWTO.split('/'), 'boot')), 'its folder gone')
-    // a swarm in a how-to's namespace: in it, the swarm's name behind it
-    const inner = { ...exec, runtime: { ...exec.runtime, uri: HOWTO + '/host' } }
-    exec.put('/main/swarms/swarm-2/.node.json', Buffer.from('{"kind":"swarm"}\n'))
-    await commit()
-    const s2 = await deploy(inner, { uri: ['main', 'swarms/swarm-2/node-1'], args: ['haiccing/target'] })
-    await commit()
-    t.is(s2.mrepo, HOWTO + '/swarm-2/node-1', 'deployed by an mrepo in a namespace: its swarm\'s nodes in that namespace')
-    t.ok(existsSync(join(work, 'mrepos', ...HOWTO.split('/'), 'swarm-2', 'node-1', '.git')), 'placed by it')
-    await teardown(inner, { uri: ['main', 'swarms/swarm-2/node-1'] })
-    await commit()
     await t.exception(deploy(exec, { uri: 'main/host', args: ['haiccing/target'] }), /not a URI: its segments, an array/, 'a URI as one string: not a form\'s')
   } finally {
     rmSync(work, { recursive: true, force: true })

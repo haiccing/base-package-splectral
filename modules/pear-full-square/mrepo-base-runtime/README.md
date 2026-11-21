@@ -36,7 +36,7 @@ mrepo's own packages: `bare
 - A line of a hook, the mrepo's own (`ctx.own`): queued, placed by the
   next pass as an internal request, its completed form waited for in
   `request/done`.
-- Its unique URI, `<swarm>/<node>`, a path, read from its runtime layer
+- Its unique URI, `<swarm>/<node>`, read from its runtime layer
   (`/runtime/mrepo.json`) as it starts; its name where it has none. It is
   how the mrepo is addressed: its inbox's topic, its requests'. In its
   status: `repository.uri`.

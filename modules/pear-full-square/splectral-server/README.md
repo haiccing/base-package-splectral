@@ -16,7 +16,6 @@ requests they make. Offered by
 
 - [external](external/)
 - [internal](internal/)
-- [schemas](schemas/)
 - [test](test/)
 
 ## Commands

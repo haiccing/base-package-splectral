@@ -39,14 +39,6 @@ A file is its own document, JSON or its text: `{ "uri": [...],
 `crud/read done/* --flags layer=request`. A folder without a document
 is not among them, nor a layer's own config (`layer.json` at its root).
 
-A binary record, AVRO in its single-object encoding (`.avro`), is
-decoded by the install's registry (`mycelium-value-avro`, its folder
-beside the packages in the store the mrepo's packages manifest names),
-every level in its place, as each was written: the record, its value,
-what that carries (`unfold`); bytes that are no level of it as base64
-text. A fingerprint the registry does not know is an error. A filter
-reads JSON documents only.
-
 ## Errors
 
 - A query that does not read.

@@ -12,8 +12,6 @@ Splectral's components as the server sees them, and the exchange with each over 
   `mreposOf`).
 - `ask({ boot, root, form, timeout })`: a data request run.
 - `recordOf(dir, position)`: where a component's record is.
-- `typedBox(rec)`: a component's inbox for typed answers, its records
-  AVRO by the install's registry (its record's `schemas`).
 - `SIDE` (`splectral`), `COMPONENTS` (`components`), `TOPIC`
   (`/splectral`, where a completed form goes back).
 
@@ -45,10 +43,7 @@ None thrown: what fails is the form's `error`. Its program not running
     mrepo's inbox, tagged as from outside (`haicc <at> <command>`), its
     completed form written into the component's inbox under the same key;
     `raw: true` asks for the response whole as well (`record`), what the
-    terminal reads and prints; `as: <schema URI>` asks for the answer
-    typed: written back as AVRO (`internal/typed`), its output as that
-    schema where it is valid as it, else `json`, when the component's
-    record names the install's registry (`schemas`); without one, JSON;
+    terminal reads and prints;
   - the install's mrepos, by the component, in its outbox: `{ request:
     "mrepos" }`: answered by the server from what it knows, its
     structure, nothing run: `output` `{ version, mrepos: [{ at, depth,

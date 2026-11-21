@@ -12,4 +12,3 @@ The methods the actions and the boot call directly, never requested.
 - [lay](lay/)
 - [install](install/)
 - [pair](pair/)
-- [schemas](schemas/)
