@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "pearFullSquare.splectralServer.data",
+  "doc": "A component's data request and its answer, over its Splectral inbox: a command run where it says, its output the next level (the schema it was asked as, or json), single-object encoded",
+  "fields": [
+    { "name": "request", "type": "string" },
+    { "name": "at", "type": ["null", "string"], "default": null },
+    { "name": "command", "type": { "type": "array", "items": "string" }, "default": [] },
+    { "name": "as", "type": ["null", "string"], "default": null },
+    { "name": "raw", "type": ["null", "boolean"], "default": null },
+    { "name": "output", "type": ["null", "bytes"], "default": null },
+    { "name": "error", "type": ["null", "string"], "default": null },
+    { "name": "record", "type": ["null", "string"], "default": null }
+  ]
+}

@@ -2,6 +2,7 @@
 // beside it). Paths are written relative, from the mrepo's root.
 import { segmented, joined, stepsOf, selects, ROOT } from 'mycelium-uri'
 import { query, shortcutsAt, NODE } from 'mrepo-base-xpath'
+import { registry, schemasOf, isSingle, unfold, plain } from 'mycelium-value-avro'
 
 // A node is a folder holding its document under this name (NODE, the
 // mrepo's: mrepo-base-xpath).
@@ -31,6 +32,14 @@ const json = async (exec, path) => {
   try { return JSON.parse(bytes.toString()) } catch (err) { throw new Error(`not a document: ${path}`, { cause: err }) }
 }
 const base = path => path.slice(path.lastIndexOf('/') + 1)
+// The install's registry: beside the packages in the store this mrepo's
+// packages manifest names.
+// log: none (one read; select's caller logs the query)
+async function registryOf (exec) {
+  const store = (await json(exec, '/packages/manifest.json'))?.store
+  if (!store) throw new Error('no registry: the mrepo\'s packages manifest names no store')
+  return registry(schemasOf(store))
+}
 
 // In main a URI does not run through a shortcut: none of the names above
 // the last may be one (through: the last too, for what is below it).
@@ -69,10 +78,14 @@ export async function nodeAt (exec, p, names) {
   return links.length ? { ...node, shortcuts: links } : node
 }
 
-// A file's document: JSON, or its text when it is not that.
+// A file's document: JSON, or its text when it is not that; a binary
+// record (AVRO, single-object encoded) decoded, every level, by the
+// install's registry (the store its packages manifest names).
 // log: none (one read; select's caller logs the query)
 async function documentOf (exec, node, at) {
-  const text = (await exec.bytes(node)).toString()
+  const bytes = await exec.bytes(node)
+  if (isSingle(bytes)) return plain(unfold(await registryOf(exec), bytes))
+  const text = bytes.toString()
   // catch: not JSON: the file's text is its value
   try { return JSON.parse(text) } catch { return text }
 }

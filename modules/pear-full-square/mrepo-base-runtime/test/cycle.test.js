@@ -49,9 +49,12 @@ for (const storage of ['p2p', 'git']) {
       t.alike(asked, { protocol: 'crud', action: 'read', uri: ['main', 'notes/hello'], output: [HELLO] }, 'the form completed: the request, its URI as held inside, and its output')
       t.alike(log.map(e => [e.level, e.event]), [['info', 'request.metrics']], 'and its log: at info, a read changes nothing, its metrics')
       t.alike([log[0].ok, log[0].puts, log[0].commits], [true, 0, 0])
-      const told = (await sendForm(work, { command: ['crud/read', 'notes/hello', '--flags', 'log=verbose', 'nope'] })).value
-      t.alike(told.flags, { log: 'verbose', nope: true }, 'flags written with a command: in the form, as written')
-      t.alike(told.log.map(e => [e.level, e.event]), [['warn', 'request.flag'], ['verbose', 'crud.read.segment'], ['verbose', 'crud.read.query'], ['info', 'request.metrics']], 'log=verbose: the action\'s steps too; a flag that is none: ignored, with a warning')
+      const told = (await sendForm(work, { command: ['crud/read', 'notes/hello', '--flags', 'log=verbose'] })).value
+      t.alike(told.flags, { log: 'verbose' }, 'flags written with a command: in the form, as written')
+      t.alike(told.log.map(e => [e.level, e.event]), [['verbose', 'crud.read.segment'], ['verbose', 'crud.read.query'], ['info', 'request.metrics']], 'log=verbose: the action\'s steps too')
+      const odd = (await sendForm(work, { command: ['crud/read', 'notes/hello', '--flags', 'log=verbose', 'nope'] })).value
+      t.alike([odd.output, 'error' in odd], [{ run: false, command: 'crud/read notes/hello --flags log=verbose nope', why: ['no flag: nope (container, continuation, feedback, help, layer, log)'] }, false], 'a flag that is none: nothing of it run; completed, not failed, said why')
+      t.alike(odd.log.map(e => [e.level, e.event, e.reason]), [['warn', 'request.flag', 'no flag: nope (container, continuation, feedback, help, layer, log)']], 'the reason a warning in its log')
       t.alike(await send(work, req('crud', 'delete', 'notes', 'recurse')), { ok: true, value: [{ ...NOTES, outcome: 'deleted' }] }, 'deleted, with what was below it')
       t.alike(await send(work, req('service', 'stop', '.')), { ok: true, value: { service: 'stopped', state: 'initialised' } })
       t.alike(await send(work, req('crud', 'read', '.')), { ok: false, error: 'not now: crud read (crud is not active; the service is initialised)' }, 'stopped: crud deactivated by the stop hook, not available')
@@ -66,7 +69,7 @@ for (const storage of ['p2p', 'git']) {
       try {
         const repo = openRepo(r.backend)
         const done = await repo.select('/request/done/*')
-        t.is(done.length, 28, 'every request done, the refused ones too, the protocol protocol opened by the runtime, and each hook line its own request')
+        t.is(done.length, 29, 'every request done, the refused ones too, the protocol protocol opened by the runtime, and each hook line its own request')
         const recs = await Promise.all(done.map(async ([p]) => JSON.parse((await repo.read(p)).toString())))
         t.ok(recs.every(x => x.topic === '/request/done' && ('output' in x.value.value || 'error' in x.value.value)), 'each in its envelope at its topic, its form completed')
         t.is(recs.filter(x => x.value.topic === null).length, 5, 'no sender: the preloaded one, the protocol protocol opened by the runtime, and the hook lines (boot, start, stop), the mrepo\'s own internal requests')
@@ -74,8 +77,8 @@ for (const storage of ['p2p', 'git']) {
         t.alike((await r.backend.listBranches()).map(([b]) => b).filter(b => !b.startsWith('execute/')).sort(), ['inbox', 'main', 'outbox', 'packages', 'protocols', 'request/done', 'request/execute', 'request/pending/default', 'runtime'], 'the layers (the execution branches not among them)')
         t.alike(await repo.select('/request/execute/*'), [], 'nothing left executing')
         t.alike(await repo.select('/main/*'), [], 'main: the note deleted again')
-        t.is((await repo.select('/inbox/*')).length, 21, 'the inbox: every envelope posted, kept (housekeeping later); the hook lines not among them: internal')
-        t.is((await repo.select('/outbox/*')).length, 21, 'the outbox: every completed form sent back')
+        t.is((await repo.select('/inbox/*')).length, 22, 'the inbox: every envelope posted, kept (housekeeping later); the hook lines not among them: internal')
+        t.is((await repo.select('/outbox/*')).length, 22, 'the outbox: every completed form sent back')
         t.is(JSON.parse((await repo.read('/runtime/service.json')).toString()).state, 'booted')
       } finally { await r.close() }
       t.absent(existsSync(join(work, 'mrepos', 'host', 'log')), 'no log folder')

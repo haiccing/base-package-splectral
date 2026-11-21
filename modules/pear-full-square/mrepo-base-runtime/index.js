@@ -96,11 +96,13 @@ export function whereOf (at) {
   const { work, repo } = typeof at === 'string' ? { work: at } : at
   // dir: the mrepo's own folder (its .git, inbox, packages); work: where
   // its store and Bare are reached (the work folder; for an mrepo by its
-  // directory, the parent of mrepos/ when it is <work>/mrepos/<name>, or
-  // <work>/mrepos/<swarm>/<name>, placed by its unique URI; else none:
-  // reached through its packages manifest)
+  // directory, the parent of the nearest mrepos/ above it: it is
+  // <work>/mrepos/<name>, or <work>/mrepos/<unique URI>, placed by its
+  // unique URI, a path; else none: reached through its packages manifest)
   if (repo) {
-    const work = basename(dirname(repo)) === MREPOS ? dirname(dirname(repo)) : basename(dirname(dirname(repo))) === MREPOS ? dirname(dirname(dirname(repo))) : null
+    let up = dirname(repo)
+    while (basename(up) !== MREPOS && dirname(up) !== up) up = dirname(up)
+    const work = basename(up) === MREPOS ? dirname(up) : null
     return { dir: repo, work, name: basename(repo), storage: 'filesystem', socket: socketIn(repo) }
   }
   const s = setting(work)
@@ -156,7 +158,7 @@ export async function run ({ work: w, repo: given = null, every = 200, idle = 20
   // No log of its own: what happens to a request is in its document and the
   // commits that moved it.
   const ctx = { work, dir, name: repo.name, backend: repo.backend, repo: openRepo(repo.backend), writer: writer(repo.backend), seen: {} }
-  // Its unique URI (<swarm>/<node>), from its runtime layer; its name where
+  // Its unique URI (<swarm>/<node>, a path), from its runtime layer; its name where
   // it has none: how it is addressed (its inbox's topic, its requests').
   ctx.uri = await ctx.repo.read(IDENTITY).then(b => JSON.parse(b.toString()).uri, () => null) ?? repo.name
   // A record into its own inbox, as its storage takes one: the inbox layer

@@ -12,6 +12,8 @@ const isReplica = uri => uri.endsWith(`/${CONTAINER}`)
 export function createStructure (root) {
   // by unique URI: { uri, parent, at, package, service, container }
   const nodes = new Map([[root, { uri: root, parent: null, at: '.', package: null, service: null, container: null }]])
+  // how many times it changed: a reader's copy is stale once it moved
+  let version = 0
   const below = uri => [...nodes.values()].filter(n => n.parent === uri)
   const drop = uri => { for (const n of below(uri)) drop(n.uri); nodes.delete(uri) }
   const childAt = (parent, at) => below(parent).find(n => n.at === at) ?? null
@@ -66,10 +68,11 @@ export function createStructure (root) {
       let changed = null
       // (several torn down at once: a list of what each said)
       for (const out of Array.isArray(form.output) ? form.output : [form.output]) changed = one(at, out) ?? changed
+      if (changed) version++
       return changed
     },
     // The tree as it is now: its nodes, each parent before its children,
-    // the children by their position.
+    // the children by their position; its version, the changes so far.
     snapshot () {
       const out = []
       const walk = (uri, depth) => {
@@ -78,7 +81,7 @@ export function createStructure (root) {
         for (const c of below(uri).sort((a, b) => a.at.localeCompare(b.at))) walk(c.uri, depth + 1)
       }
       walk(root, 0)
-      return { root, nodes: out }
+      return { root, version, nodes: out }
     }
   }
 }

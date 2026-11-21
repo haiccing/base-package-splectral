@@ -76,18 +76,20 @@ test('the mrepo it defines: its list of packages, itself last; its hooks, file b
   t.alike(json('mrepo', 'packages', 'layer.json').packages, [
     'haiccing/base-package-runtime',
     'haiccing/base-package-info',
+    'haiccing/base-package-help',
     'haiccing/base-package-protocol',
     'haiccing/base-package-boot',
     'haiccing/base-package-service',
     'haiccing/base-package-haicc',
     'haiccing/base-package-splectral'
-  ], 'the runtime, info, the protocol protocol, boot (its components deployed), the service, haicc (commands sent on to them), this package: deployed as the target, it makes the Splectral mrepo')
+  ], 'the runtime, info, help, the protocol protocol, boot (its components deployed), the service, haicc (commands sent on to them), this package: deployed as the target, it makes the Splectral mrepo')
   t.alike(brought, {
     'boot/1': ['protocol/activate', '.', 'boot'],
     'boot/2': ['protocol/activate', '.', 'haicc'],
-    'boot/3': ['protocol/activate', '.', 'info'],
-    'boot/4': ['protocol/activate', '.', 'runtime'],
-    'boot/5': ['protocol/activate', '.', 'service'],
+    'boot/3': ['protocol/activate', '.', 'help'],
+    'boot/4': ['protocol/activate', '.', 'info'],
+    'boot/5': ['protocol/activate', '.', 'runtime'],
+    'boot/6': ['protocol/activate', '.', 'service'],
     'initialise/1': ['info/extract'],
     'start/1': ['protocol/activate', '.', 'splectral'],
     'start/2': ['splectral/start'],

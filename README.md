@@ -25,6 +25,7 @@ apps, each served at `/<position>/` (below, "Components").
 
 - [base-package-runtime](../base-package-runtime/)
 - [base-package-info](../base-package-info/)
+- [base-package-help](../base-package-help/)
 - [base-package-protocol](../base-package-protocol/)
 - [base-package-boot](../base-package-boot/)
 - [base-package-service](../base-package-service/)
@@ -32,7 +33,15 @@ apps, each served at `/<position>/` (below, "Components").
 
 ## What it shows
 
-The install: the mrepos as a tree, each with its service state; a
+The site: a tab for Splectral's own page (`install`, at `/` and
+`/install`), then a tab for each component installed; past five, the
+rest in a drop-down. The URI is chopped: the site serves `/`, a
+component its first name and the rest, its page in the site's content
+area (`/help/hdlc/validation`: the help viewer's page
+`hdlc/validation`). A static page, the server's for now (the team,
+2026-11-19: "Start simple").
+
+Its own page, `install`, shows the install: the mrepos as a tree, each with its service state; a
 swarm's nodes under their swarm, a swarm node as one node with its
 container's state. It is what the commands made: folded from their
 records, not asked of the mrepos, so a runtime or a container that

@@ -11,7 +11,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, renameSync, rmSync, existsSync, 
 import { join, dirname } from 'bare-path'
 import { tmpdir } from 'bare-os'
 import { fileURLToPath } from 'bare-url'
-import { summaryOf, follow, serve, createStructure, launch, end, stateOf, start, stop, status, PAGE, PORT, HOST, ROOT, STATE, SIDE, COMPONENTS } from '../index.js'
+import { summaryOf, follow, serve, mreposOf, createStructure, launch, end, stateOf, start, stop, status, PAGE, site, SHOWN, PORT, HOST, ROOT, STATE, SIDE, COMPONENTS } from '../index.js'
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'cli.js')
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -85,7 +85,7 @@ function done (through, output, error = null) {
 test('the install folded from its completed records: its mrepos a tree, each with its state; a swarm node one node, its container part of it', (t) => {
   const s = createStructure('local/boot')
   const at = uri => s.snapshot().nodes.find(x => x.uri === uri) ?? null
-  t.alike(s.snapshot(), { root: 'local/boot', nodes: [{ uri: 'local/boot', parent: null, at: '.', package: null, service: null, container: null, depth: 0 }] }, 'nothing yet: the root alone')
+  t.alike(s.snapshot(), { root: 'local/boot', version: 0, nodes: [{ uri: 'local/boot', parent: null, at: '.', package: null, service: null, container: null, depth: 0 }] }, 'nothing yet: the root alone')
   t.is(s.apply(done([], { deployed: 'host', mrepo: 'local/host', package: 'haiccing/base-component-haicc' })), 'local/host', 'a deploy executed at the root: a child of the root, by its unique URI; what changed said')
   t.alike(at('local/host'), { uri: 'local/host', parent: 'local/boot', at: 'host', package: 'haiccing/base-component-haicc', service: null, container: null, depth: 1 }, 'the node: its parent, its position, its package; no state yet')
   s.apply(done(['local/host'], { service: 'initialised', state: 'initialised' }))
@@ -95,6 +95,8 @@ test('the install folded from its completed records: its mrepos a tree, each wit
   s.apply(done(['local/host'], { deployed: 'swarms/swarm-1/node-1', mrepo: 'swarm-1/node-1', package: 'haiccing/base-component-haicc' }))
   s.apply(done(['local/host'], { deployed: 'swarms/swarm-1/node-2', mrepo: 'swarm-1/node-2', package: 'haiccing/base-component-haicc' }))
   t.alike(s.snapshot().nodes.map(x => [x.depth, x.uri, x.parent]), [[0, 'local/boot', null], [1, 'local/host', 'local/boot'], [2, 'swarm-1/node-1', 'local/host'], [2, 'swarm-1/node-2', 'local/host']], 'the tree: each parent before its children, the children by position')
+  t.is(s.snapshot().version, 5, 'its version: one a change (the deploys, the service moved twice), none for what changed nothing')
+  t.alike(mreposOf(s.snapshot()), { version: 5, mrepos: [{ at: '.', depth: 0, package: null }, { at: 'host', depth: 1, package: 'haiccing/base-component-haicc' }, { at: 'host/swarms/swarm-1/node-1', depth: 2, package: 'haiccing/base-component-haicc' }, { at: 'host/swarms/swarm-1/node-2', depth: 2, package: 'haiccing/base-component-haicc' }] }, 'the mrepos as a command names them: each by its position from the root')
   s.apply(done(['local/host', 'swarm-1/node-1'], { service: 'started', state: 'started' }))
   // its container: a swarm node is one node
   t.is(s.apply(done(['local/host', 'swarm-1/node-1'], { created: 'container', mrepo: 'swarm-1/node-1/container', container: { name: 'haicc-swarm-1-node-1-abc', image: 'haicc-node:x' } })), 'swarm-1/node-1', 'its replica made: the node changed, no node of its own')
@@ -125,7 +127,23 @@ test('the install folded from its completed records: its mrepos a tree, each wit
   t.alike([at('local/host').package, at('local/host').service], ['b', null], 'a redeploy: the node new, its state gone')
 })
 
-test('the server: the page, the lines, one record whole, each new line streamed; closed', async (t) => {
+test('the site: its tabs, Splectral\'s own first; a section\'s page embedded in its content area, its links at the top; the rest in a drop-down; static', (t) => {
+  const tabs = [{ name: 'install', label: 'install', href: '/install' }, { name: 'help', label: 'help', href: '/help/' }]
+  const html = site({ tabs, selected: 'help', content: '<!doctype html><html><head><title>x</title></head><body><a href="/help/x">"x" & y</a></body></html>' })
+  t.ok(html.includes('<title>Splectral · help</title>'), 'the site, the section shown')
+  t.ok(html.includes('<a href="/install">install</a><a href="/help/" class="on" aria-current="page">help</a>'), 'its tabs, a component\'s at its own URI, the one shown marked')
+  t.ok(html.includes('srcdoc="<!doctype html><html><head><base href=&quot;/help/&quot; target=&quot;_top&quot;><title>x</title></head><body><a href=&quot;/help/x&quot;>&quot;x&quot; &amp; y</a></body></html>"'), 'the section\'s page embedded whole, its base its section\'s address, its links opening at the top')
+  t.ok(site({ tabs, selected: 'nothing' }).includes('<a href="/install" class="on"'), 'none there: the first')
+  t.absent(/<script\b/.test(html), 'static: no script of its own')
+  t.absent(html.includes('<details'), 'few tabs: no drop-down')
+  const many = [tabs[0], ...Array.from({ length: SHOWN + 1 }, (_, i) => ({ name: `c${i}`, label: `c${i}`, href: `/c${i}/` }))]
+  const crowded = site({ tabs: many, selected: `c${SHOWN}` })
+  t.is((crowded.match(/<nav>.*<details/)[0].match(/<a /g) ?? []).length, SHOWN, 'the first five shown')
+  t.ok(crowded.includes('<details open><summary>more (2)</summary>'), 'the rest in a drop-down, open when the one shown is in it')
+  t.exception(() => site({ tabs: [] }), /missing argument: tabs/)
+})
+
+test('the server: the site, its own page, the lines, one record whole, each new line streamed; closed', async (t) => {
   const folder = mkdtempSync(join(tmpdir(), 'splectral-serve-'))
   let s = null
   let second = null
@@ -134,8 +152,11 @@ test('the server: the page, the lines, one record whole, each new line streamed;
     drop(folder, record(2, { error: 'no node there' }))
     s = await serve({ outbox: folder, port: 0, every: 100 })
     t.ok(/^http:\/\/127\.0\.0\.1:\d+$/.test(s.url) && s.port > 0, 'served on this machine only, at a free port when 0 is asked')
-    const page = await ask(`${s.url}/`)
-    t.alike([page.status, page.type, page.body === PAGE, page.body.includes('<title>Splectral</title>')], [200, 'text/html; charset=utf-8', true, true], 'the page')
+    const front = await ask(`${s.url}/`)
+    const own = site({ tabs: [{ name: 'install', label: 'install', href: '/install' }], selected: 'install', content: PAGE })
+    t.alike([front.status, front.type, front.body === own], [200, 'text/html; charset=utf-8', true], 'the site, its own page in it')
+    t.is((await ask(`${s.url}/install`)).body, own, 'the same at /install')
+    t.ok(PAGE.includes('<title>Splectral</title>'), 'its own page')
     t.absent(/src="http|href="http|@import/.test(PAGE), 'nothing loaded from elsewhere')
     // its script reads as JavaScript: made a function, not run
     const script = PAGE.slice(PAGE.indexOf('<script>') + '<script>'.length, PAGE.indexOf('</script>'))
@@ -155,7 +176,7 @@ test('the server: the page, the lines, one record whole, each new line streamed;
     t.alike([lines[0].key, lines[0].command, lines[0].through], [KEYS[3], 'boot/deploy host haiccing/base-component-haicc', []], 'the line')
     t.is(s.records().length, 3, 'and among the lines')
     // the structure: folded from the records, asked for, and streamed when one changes it
-    t.alike([s.root, ROOT, JSON.parse((await ask(`${s.url}/structure`)).body)], ['local/boot', 'local/boot', { root: 'local/boot', nodes: [{ uri: 'local/boot', parent: null, at: '.', package: null, service: null, container: null, depth: 0 }] }], 'the structure asked for: the root alone, no record having said more')
+    t.alike([s.root, ROOT, JSON.parse((await ask(`${s.url}/structure`)).body)], ['local/boot', 'local/boot', { root: 'local/boot', version: 0, nodes: [{ uri: 'local/boot', parent: null, at: '.', package: null, service: null, container: null, depth: 0 }] }], 'the structure asked for: the root alone, no record having said more')
     const structures = []
     const second2 = http.request(`${s.url}/stream`, res => { let buf = ''; res.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n\n')) >= 0) { const block = buf.slice(0, i); buf = buf.slice(i + 2); if (block.startsWith('event: structure\n')) structures.push(JSON.parse(block.slice(block.indexOf('data: ') + 6))) } }) })
     second2.on('error', () => {})
@@ -286,13 +307,19 @@ test('a component: a page asked through its Splectral inbox, its data request ru
   }, { every: 200 })
   // the component's renderer, as far as the test goes: a page asked, data asked for it, the page answered
   const pages = []
+  const answered = { records: [], mrepos: [] }
+  // its data request's key, the page's with its first digit changed: never the page's own (a key seen once in a folder is not taken again)
+  const dataKey = key => `${key[0] === 'd' ? 'e' : 'd'}${key.slice(1)}`
   const renderer = follow(join(viewer, SIDE, 'inbox'), (envelope, file) => {
     const form = envelope.value.value
     rmSync(join(viewer, SIDE, 'inbox', file), { force: true })
     if (form.request === 'page') {
       pages.push({ ...form, key: envelope.key })
-      put(join(viewer, SIDE, 'outbox'), `d${envelope.key.slice(1)}`, { topic: '/splectral', key: `d${envelope.key.slice(1)}`, timestamp: new Date().toISOString(), headers: { page: envelope.key }, value: { topic: '/local/viewer/splectral/inbox', key: `d${envelope.key.slice(1)}`, timestamp: new Date().toISOString(), headers: {}, value: { request: 'data', at: 'docs', command: ['info/get', form.path] } } })
+      put(join(viewer, SIDE, 'outbox'), dataKey(envelope.key), { topic: '/splectral', key: dataKey(envelope.key), timestamp: new Date().toISOString(), headers: { page: envelope.key }, value: { topic: '/local/viewer/splectral/inbox', key: dataKey(envelope.key), timestamp: new Date().toISOString(), headers: {}, value: { request: 'data', at: 'docs', command: ['info/get', form.path], raw: true } } })
+    } else if (form.request === 'mrepos') {
+      answered.mrepos.push(form.output)
     } else if (form.request === 'data') {
+      answered.records.push(form.record)
       const key = pages.at(-1).key
       put(join(viewer, SIDE, 'outbox'), key, { topic: '/splectral', key, timestamp: new Date().toISOString(), headers: {}, value: { topic: '/splectral', key, timestamp: new Date().toISOString(), headers: {}, value: { request: 'page', path: pages.at(-1).path, output: `<h1>${form.output.page.split('\n')[0].slice(2)}</h1>` } } })
     }
@@ -312,15 +339,20 @@ test('a component: a page asked through its Splectral inbox, its data request ru
     t.alike(s.components(), ['quiet', 'stopped', 'viewer'], 'its components, from the records install leaves')
     const page = await ask(`${s.url}/viewer/hdlc/validation?x=1`)
     t.is(page.status, 200, 'a component\'s page')
-    t.is(page.body, '<h1>Validation</h1>', 'as the component made it')
+    t.ok(page.body.includes('<a href="/install">install</a><a href="/quiet/">quiet</a><a href="/stopped/">stopped</a><a href="/viewer/" class="on" aria-current="page">viewer</a>'), 'in the site: a tab a component, its own shown')
+    t.ok(page.body.includes('srcdoc="<base href=&quot;/viewer/&quot; target=&quot;_top&quot;><h1>Validation</h1>"'), 'its page in the site\'s content area, as the component made it, its base its section')
     t.alike([pages[0].path, pages[0].query], ['hdlc/validation', { x: '1' }], 'the page asked: its path below the component, its query')
     t.alike(asked, [{ topic: '/local/boot/inbox', parts: ['haicc', 'docs', 'info/get', 'hdlc/validation'], trigger: 'external' }], 'its data request: a command at the root, as a terminal sends it')
     t.ok(await until(() => readdirSync(join(viewer, SIDE, 'outbox')).length === 0), 'what the server took from the component\'s outbox removed')
+    t.is(JSON.parse(answered.records[0]).value.value.output.page.split('\n')[0], '# Validation', 'asked raw: the response whole as well, as its folder holds it (what the terminal prints)')
+    put(join(viewer, SIDE, 'outbox'), 'm0000000-0000-4000-8000-000000000000', { topic: '/splectral', key: 'm0000000-0000-4000-8000-000000000000', timestamp: new Date().toISOString(), headers: {}, value: { topic: '/local/viewer/splectral/inbox', key: 'm0000000-0000-4000-8000-000000000000', timestamp: new Date().toISOString(), headers: {}, value: { request: 'mrepos' } } })
+    t.ok(await until(() => answered.mrepos.length === 1), 'the install\'s mrepos asked: answered by the server')
+    t.alike(answered.mrepos[0], { version: 0, mrepos: [{ at: '.', depth: 0, package: null }] }, 'from its structure, nothing run: the root alone here, no record having said more')
     const none = await ask(`${s.url}/quiet/x`)
     t.is(none.status, 504, 'a component that does not answer: said')
     t.ok(none.body.includes('is its service started?'))
     const stopped = await ask(`${s.url}/stopped/x`)
-    t.alike([stopped.status, stopped.body.includes('not running: stopped')], [503, true], 'one whose renderer does not run: said at once')
+    t.alike([stopped.status, stopped.body.includes('not running: stopped'), stopped.body.includes('<a href="/stopped/" class="on"')], [503, true, true], 'one whose program does not run: said at once, in the site')
     t.is((await ask(`${s.url}/nothing`)).status, 404, 'no component there: nothing here')
   } finally {
     await s.close()

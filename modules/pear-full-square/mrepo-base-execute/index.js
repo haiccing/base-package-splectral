@@ -57,14 +57,15 @@
 //             (train.<event>, each with its ms)
 //   error     what stopped it (request.failed: the error, the chain of its
 //             causes, the step it was at, what was undone; its stack at
-//             debug); warn: what was got over (request.flag: a flag
-//             ignored). Both always kept.
+//             debug); warn: a flag a request carries that is none (at the
+//             door such a request is not run: mrepo-base-request,
+//             problems; request.flag). Both always kept.
 // How much is kept is the request's flag, log=info|verbose|debug (info
 // without it). A flag holds through a chain until changed: a command run
 // here (exec.run) can set it from there on, one sent on takes the flags in
 // force with it, and the entries of the request it became come back with
 // its response, each under its jump (`jump`: the positions gone through).
-import { wrap, complete, continuationOf, isComplete, logger, sorted, AUTHOR, EXECUTE, check, runtimeData, isInternal, principals, formOf, joined, slashed, OUTSIDE, OWN } from 'mrepo-base-request'
+import { wrap, complete, continuationOf, isComplete, logger, sorted, problems, AUTHOR, EXECUTE, check, runtimeData, isInternal, principals, formOf, joined, slashed, OUTSIDE, OWN } from 'mrepo-base-request'
 import { from, ROOT } from 'mycelium-uri'
 import { pass } from './lib/remote.js'
 import { park } from './lib/wait.js'
@@ -305,6 +306,8 @@ export async function execute (ctx, { actions = {} } = {}) {
     // The heads before each local commit: what a rollback goes back to.
     const commits = []
     const exec = Object.freeze({
+      // the request's id: its record's key, request/done/<id>.json once done
+      id: name,
       runtime: runtimeView(ctx),
       // A URI as the execution sees it: /main/x read from its execution
       // branch of main, once it has one.
@@ -342,6 +345,9 @@ export async function execute (ctx, { actions = {} } = {}) {
         // (the flags in force come with it, as with a command sent on)
         const given = Array.isArray(command) || typeof command === 'string' ? { command } : command
         const inner = formOf({ ...given, flags: { ...flags, ...(given.flags ?? {}) } }, ctx.protocols ?? {}, at)
+        // what its flags keep from being run: not run, said (as at the door)
+        const unrun = problems(inner, ctx.protocols ?? {})
+        if (unrun.length) throw new Error(`not run: ${unrun.join('; ')}`)
         const why = check(inner, await runtimeData(ctx), { internal: internal || own })
         if (why) throw new Error(why)
         const fn = actions[inner.protocol]?.[inner.action]

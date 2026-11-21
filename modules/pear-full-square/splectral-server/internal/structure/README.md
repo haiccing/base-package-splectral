@@ -18,7 +18,8 @@ record that was sent on nowhere was executed.
 
 - `apply`: a completed record taken in; the unique URI of the node it
   changed, `null` when it changed nothing.
-- `snapshot`: `{ root, nodes }`, each parent before its children, the
+- `snapshot`: `{ root, version, nodes }`: `version` how many times it
+  changed so far; the nodes each parent before its children, the
   children by position. A node: `{ uri, parent, at, package, service,
   container, depth }`: its unique URI, its parent's, its position
   there, the package it was deployed from, its service state (`null`

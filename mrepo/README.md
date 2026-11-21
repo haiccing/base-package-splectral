@@ -12,7 +12,7 @@ The package's part of the structure: the Splectral mrepo's list of packages and 
 
 - **`runtime/service.json`**: the service state, `booted`: the Splectral
   mrepo is service managed.
-- **At `boot`**: `info`, `runtime` and `service` activated.
+- **At `boot`**: `help`, `info`, `runtime` and `service` activated.
 - **At `initialise`**: its info extracted.
 - **At `start`**: `splectral` activated, then the server started
   (`splectral/start`): the page is there once the mrepo is started.

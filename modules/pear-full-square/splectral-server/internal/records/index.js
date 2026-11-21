@@ -31,19 +31,21 @@ export function summaryOf (envelope) {
 }
 
 // A folder of records followed: each(envelope, file) for every record
-// there, the oldest first, then for each that arrives; a file once.
+// there, the oldest first, then for each that arrives; a file once. JSON;
+// AVRO too (.avro) when given its decoder (avro: bytes -> envelope).
 // -> { stop }
-export function follow (folder, each, { every = 2000 } = {}) {
+export function follow (folder, each, { every = 2000, avro = null } = {}) {
   const seen = new Set()
   let stopped = false
   const look = () => {
     if (stopped || !existsSync(folder)) return
     const found = []
     for (const name of readdirSync(folder)) {
-      if (seen.has(name) || !name.endsWith('.json')) continue
+      const typed = avro && name.endsWith('.avro')
+      if (seen.has(name) || !(name.endsWith('.json') || typed)) continue
       let envelope = null
-      // catch: not whole yet, or not JSON: looked at again the next time
-      try { envelope = JSON.parse(readFileSync(join(folder, name), 'utf8')) } catch { continue }
+      // catch: not whole yet, or not JSON (not AVRO): looked at again the next time
+      try { envelope = typed ? avro(readFileSync(join(folder, name))) : JSON.parse(readFileSync(join(folder, name), 'utf8')) } catch { continue }
       seen.add(name)
       found.push([envelope, name])
     }

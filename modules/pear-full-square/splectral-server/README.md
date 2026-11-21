@@ -5,8 +5,9 @@ Splectral's server on an mrepo: an install and its commands shown in a browser a
 Splectral is an app platform: an mrepo of its own beside the host, its
 components apps. Started, it runs a server, the data layer: it follows
 the root mrepo's outbox folder and shows the install as a tree and its
-commands; it routes the browser to its components, each at
-`/<position>/`, and runs the data requests they make. Offered by
+commands; it serves the site, a tab each, and routes the browser to its
+components, each a section at `/<position>/`, and runs the data
+requests they make. Offered by
 `haiccing/base-package-splectral`.
 
 `cli.js` is the server as a program: what `start` starts.
@@ -15,6 +16,7 @@ commands; it routes the browser to its components, each at
 
 - [external](external/)
 - [internal](internal/)
+- [schemas](schemas/)
 - [test](test/)
 
 ## Commands
@@ -30,9 +32,19 @@ haicc splectral/help service/initialise
 haicc splectral/help service/start
 ```
 
+## The site
+
+A static page, its tabs Splectral's own page (`install`) then each
+component, past five the rest in a drop-down. The URI is chopped: the
+site serves `/`, a component its first name and the rest:
+`/help/hdlc/validation` is the site, the tab `help` chosen, the help
+viewer's page `hdlc/validation` in its content area. The site owns the
+tabs; a component opens its real estate within. The server's for now
+(the team, 2026-11-19: "Start simple").
+
 ## The page
 
-The install, as its commands made it: its mrepos a tree, each with its
+Its own page, `/install`. The install, as its commands made it: its mrepos a tree, each with its
 service state; a swarm's nodes under their swarm, a swarm node one node
 with its container's state beside its own. It is folded from the
 records: nothing is asked of the mrepos.

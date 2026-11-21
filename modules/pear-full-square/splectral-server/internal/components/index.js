@@ -5,7 +5,10 @@ import fs, { existsSync, readdirSync, readFileSync, mkdirSync, rmSync } from 'ba
 import { join } from 'bare-path'
 import { record, wrap, guid, inboxOf } from 'mrepo-base-request'
 import { programState } from 'mrepo-base-runtime'
+import { documents } from 'mycelium-container-document'
+import { registry } from 'mycelium-value-avro'
 import { follow } from '../records/index.js'
+import { encodeAnswer, decodeAnswer } from '../typed/index.js'
 
 // A component's Splectral side, in its mrepo's folder: its packages, its
 // inbox and outbox, what was installed (component.json).
@@ -16,17 +19,34 @@ export const recordOf = (dir, at) => join(dir, COMPONENTS, `${at}.json`)
 // Where a completed form goes back: the topic of Splectral's requests.
 export const TOPIC = '/splectral'
 
+// A component's inbox for typed answers: its records AVRO, by the
+// install's registry.
+export const typedBox = rec => {
+  const reg = registry(rec.schemas)
+  return documents(join(rec.folder, SIDE, 'inbox'), { extension: 'avro', encode: envelope => encodeAnswer(reg, envelope), decode: bytes => decodeAnswer(reg, bytes) })
+}
+
 const completed = form => form && typeof form === 'object' && ('output' in form || 'error' in form)
 
 // dir: Splectral's own folder; boot: the root mrepo's folder (its inbox
-// the one gateway), root its unique URI.
-export function createComponents ({ dir, boot, root, wait = 20000, timeout = 120, every = 2000 }) {
+// the one gateway), root its unique URI; mrepos: the install's mrepos as
+// the server knows them, { version, mrepos }.
+export function createComponents ({ dir, boot, root, mrepos = () => ({ version: 0, mrepos: [] }), wait = 20000, timeout = 120, every = 2000 }) {
   const known = new Map()
   const pending = new Map()
   const folder = join(dir, COMPONENTS)
   mkdirSync(folder, { recursive: true })
   // A component's record read; its outbox followed: a page answered, a
-  // data request run. Each record taken is removed: the boxes are queues.
+  // data request run, the install's mrepos said. Each record taken is
+  // removed: the boxes are queues.
+  // A data answer asked for typed (`as`), where the component knows the
+  // install's registry (its record's `schemas`): AVRO (internal/typed);
+  // else JSON, as every other record.
+  const back = (rec, key, form) => {
+    const envelope = wrap(`/${rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, form, key) })
+    if (typeof form.as === 'string' && rec.schemas) return typedBox(rec).write(key, envelope)
+    inboxOf(join(rec.folder, SIDE)).write(key, envelope)
+  }
   const take = (at, rec) => (envelope, file) => {
     const form = envelope?.value?.value
     const out = join(rec.folder, SIDE, 'outbox', file)
@@ -37,7 +57,12 @@ export function createComponents ({ dir, boot, root, wait = 20000, timeout = 120
     }
     if (form?.request === 'data' && !completed(form)) {
       rmSync(out, { force: true })
-      ask({ boot, root, form, timeout }).then(answer => inboxOf(join(rec.folder, SIDE)).write(envelope.key, wrap(`/${rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, { ...form, ...answer }, envelope.key) })))
+      ask({ boot, root, form, timeout }).then(answer => back(rec, envelope.key, { ...form, ...answer }))
+      return
+    }
+    if (form?.request === 'mrepos' && !completed(form)) {
+      rmSync(out, { force: true })
+      back(rec, envelope.key, { ...form, output: mrepos() })
     }
   }
   const load = () => {
@@ -72,7 +97,7 @@ export function createComponents ({ dir, boot, root, wait = 20000, timeout = 120
       if (program && !programState(join(c.rec.folder, SIDE, 'packages', `${program}.state.json`))) return { status: 503, form: { error: `not running: ${at} (its service not started? haicc splectral/${at} service/start)` } }
       const key = guid()
       const answered = new Promise(resolve => pending.set(key, resolve))
-      inboxOf(join(c.rec.folder, SIDE)).write(key, wrap(`/${c.rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, { request: 'page', path, query, base: `/${at}` }, key) }))
+      inboxOf(join(c.rec.folder, SIDE)).write(key, wrap(`/${c.rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, { request: 'page', path, query }, key) }))
       let t = null
       const late = new Promise(resolve => { t = setTimeout(() => resolve(null), wait) })
       const form = await Promise.race([answered, late])
@@ -94,7 +119,9 @@ export function createComponents ({ dir, boot, root, wait = 20000, timeout = 120
 
 // A data request run as a terminal runs a command: into the root mrepo's
 // inbox, tagged as from outside, its completed form waited for in its
-// outbox folder. -> { output } or { error }
+// outbox folder. -> { output } or { error }; asked with `raw: true`, also
+// the response whole as its folder holds it, as the terminal reads it
+// ({ record }).
 export async function ask ({ boot, root, form, timeout = 120 }) {
   const at = form.at ?? '.'
   const command = Array.isArray(form.command) ? form.command : []
@@ -112,7 +139,9 @@ export async function ask ({ boot, root, form, timeout = 120 }) {
       if (Date.now() >= end) return { error: `no response in ${timeout} s: ${parts.join(' ')}` }
       await new Promise(resolve => { const t = setTimeout(resolve, 200); arrived = () => { clearTimeout(t); resolve() } })
     }
-    const done = JSON.parse(readFileSync(back, 'utf8')).value.value
-    return 'error' in done ? { error: done.error } : { output: done.output ?? null }
+    const text = readFileSync(back, 'utf8')
+    const done = JSON.parse(text).value.value
+    const raw = form.raw === true ? { record: text } : {}
+    return 'error' in done ? { error: done.error, ...raw } : { output: done.output ?? null, ...raw }
   } finally { watcher?.close() }
 }

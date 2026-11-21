@@ -19,7 +19,7 @@ The position is one of two forms:
 
 - A child's position below `main`, as it was deployed: `uri` is
   `["main", "<position>"]`.
-- `registry/<swarm>/<name>`, a query into the mrepo registry: below.
+- `registry/<unique URI>`, a query into the mrepo registry: below.
 
 Several at once: a URI into the mrepo registry (the boot mrepo's, in
 its `main`) selects mrepos there by unique URI, and each is torn down

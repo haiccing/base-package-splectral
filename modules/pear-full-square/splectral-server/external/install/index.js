@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, writeFileSync, renameSync, readFileSync } from '
 import { join } from 'bare-path'
 import { segmented, joined, within } from 'mycelium-uri'
 import { shortcutsAt, linked, MAIN } from 'mrepo-base-xpath'
-import { origin, fetch, structureOf, put } from 'mrepo-base-boot'
+import { origin, fetch, structureOf, put, register, schemasOf } from 'mrepo-base-boot'
 import { runLines, words } from 'mrepo-base-request'
 import { RESERVED } from '../../internal/serve/index.js'
 import { SIDE, COMPONENTS, recordOf } from '../../internal/components/index.js'
@@ -62,9 +62,12 @@ export async function install (exec, { uri, args: [component] = [] }) {
     }
     return packages
   })
+  // their schemas registered in the install's registry, as a deploy's are
+  await exec.step('schemas', r => ({ schemas: Object.values(r).flat().length }), async () => register({ store, packages: list }))
   mkdirSync(join(side, 'inbox'), { recursive: true })
   mkdirSync(join(side, 'outbox'), { recursive: true })
-  const record = { at, mrepo: link.mrepo, folder, component, list, packages, installed: new Date().toISOString() }
+  // (schemas: the install's registry, where the component's typed records are read)
+  const record = { at, mrepo: link.mrepo, folder, component, list, packages, schemas: schemasOf(store), installed: new Date().toISOString() }
   writeWhole(join(side, 'component.json'), record)
   // The component's runtime config (its start and stop hooks) laid by the
   // mrepo itself: its runtime is the one writer of its layers. This

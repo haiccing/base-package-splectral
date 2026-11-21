@@ -27,6 +27,10 @@ routine.
   `exec.runtime.dir`.
 - **Internal methods** are called by code: by the actions, and by the boot
   itself before any runtime runs.
+- **The schemas registered at deploy**: placing a package registers the
+  schemas its bundle carries, its own and its modules', in the install's
+  registry, beside the packages in the store (`internal/schemas`;
+  `mycelium-value-avro`): the creator registers.
 - **Not yet**: the requirements resolved into packages; what an action does
   outside the repository, such as a runtime started or a folder removed, is
   not undone by a reset.
@@ -35,9 +39,13 @@ routine.
 
 A child is placed by its unique URI, side by side with the others under
 the work folder's `mrepos/` (`mrepos/local/host`), not inside its parent.
-It is in its parent's swarm, unless a node above it says it is a swarm,
-`{"kind":"swarm"}`: then it is that swarm's node, `<swarm>/<name>`
-(`mrepos/swarm-1/node-1`).
+Its unique URI is a path: in its parent's namespace (`local`), unless a
+node above it says it is a namespace: a swarm, `{"kind":"swarm"}`, then
+it is that swarm's node, `<swarm>/<name>` (`mrepos/swarm-1/node-1`); a
+`howtos` node, `{"kind":"howtos"}`, then the path below it is its URI
+(`howtos/haiccing/base-package-crud/howto/query/boot`:
+`mrepos/haiccing/base-package-crud/howto/query/boot`). No unique URI is a
+prefix of another's: no mrepo's folder inside another's.
 The parent holds a node for it in its `main`, a shortcut: which mrepo,
 and the link's key; and the link's record in its `links` layer, by that
 key: what this machine knows of it (where it is, the position that
