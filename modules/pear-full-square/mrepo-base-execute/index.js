@@ -306,6 +306,8 @@ export async function execute (ctx, { actions = {} } = {}) {
     // The heads before each local commit: what a rollback goes back to.
     const commits = []
     const exec = Object.freeze({
+      // the request's id: its record's key, request/done/<id>.json once done
+      id: name,
       runtime: runtimeView(ctx),
       // A URI as the execution sees it: /main/x read from its execution
       // branch of main, once it has one.

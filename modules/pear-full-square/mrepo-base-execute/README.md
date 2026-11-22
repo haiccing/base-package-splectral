@@ -59,7 +59,9 @@ executed in execution
 branches made from their targets (`execute/main`, `execute/runtime`,
 `execute/request/execute`), its action run inside the execution context
 (read-only to it: the targets read overlaid, the execution branches written,
-the runtime's context read through `exec.runtime`), its record completed,
+the runtime's context read through `exec.runtime`; the request's id,
+`exec.id`, its record's key: `request/done/<id>.json` once done), its
+record completed,
 each branch squashed into its own target. `executed(ctx, name, record)`
 hands over a form completed elsewhere the same way (the boot's own request).
 Run by the repository's runtime
