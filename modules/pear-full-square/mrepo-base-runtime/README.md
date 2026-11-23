@@ -3,7 +3,7 @@
 The mrepo runtime: the always-on process that runs an mrepo's protocols.
 
 It holds the mrepo's store as its single writer, serves its local connection
-(`status`, `stop`), and fires the protocols in turn over their data states.
+(`status`, `stop`, `decommission`), and fires the protocols in turn over their data states.
 Before the mrepo is operational, it places its own requests, such as
 its help's extraction, and takes none from the inbox. Its own package offers the `runtime`
 protocol.
@@ -31,12 +31,29 @@ mrepo's own packages: `bare
   request; then its boot hook file, `/runtime/hooks/boot.haicc`, a line a
   request of its own (internal, standing at `main`), one after the
   other; until they are done it takes nothing else from the inbox. The
-  runtime names no other protocol: what is activated or extracted at
-  boot is the hook's.
+  runtime names no other protocol: what is activated at boot is the
+  hook's (the activations only: an mrepo's setup is its service's
+  `initialise`).
+- **Commission**: after the boot hook, its `commission` hook,
+  `/runtime/hooks/commission.haicc`, the same way, its lines the mrepo's
+  own: what the mrepo does once deployed, as its package says (its
+  components deployed, each commissioned by its own; its service
+  initialised, started). At every start: the runtime starts at a deploy
+  and stops at a teardown, and a runtime started again (a restart, a
+  replica's with its container) runs it again; its lines are idempotent
+  (`base-docs-hdlc`, "Every action is idempotent"): a deploy of what is
+  there is a warning, a service in its state already runs its hook again.
+  Nothing records it. Its state in the status, `commission`:
+  `none` (no hook), `pending`, `running`, `done`, `failed` with the line
+  that failed and why; the inbox is open while it runs.
+- **Decommission**: asked over its connection (`decommission`) by a
+  teardown, before it stops the runtime: its `decommission` hook's lines
+  run, the answer when they are done (`{ ok, decommission: none | done }`,
+  or `{ ok: false, error }`, the line that failed).
 - A line of a hook, the mrepo's own (`ctx.own`): queued, placed by the
   next pass as an internal request, its completed form waited for in
   `request/done`.
-- Its unique URI, `<swarm>/<node>`, read from its runtime layer
+- Its unique URI, `<swarm>/<node>`, a path, read from its runtime layer
   (`/runtime/mrepo.json`) as it starts; its name where it has none. It is
   how the mrepo is addressed: its inbox's topic, its requests'. In its
   status: `repository.uri`.
@@ -89,6 +106,11 @@ mrepo's own packages: `bare
 - `stop({ repo, pid })`: a runtime ended, waited for until its process has
   ended: asked over its connection, then SIGTERM, then SIGKILL. Used by a
   parent's teardown and by the `haicc` app's.
+- `commissioned({ repo })`: its commission waited for, as its status says
+  it, until it is done or failed (or the runtime gone: `null`), bounded
+  (`wait`, 30 minutes); a parent's deploy waits on it.
+  `decommission({ repo })`: its decommission asked and waited for; a
+  parent's teardown runs it before `stop`.
 - `test/fixture.js`: a booted host, for the tests.
 
 ## Tests

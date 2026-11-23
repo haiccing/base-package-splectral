@@ -2,11 +2,13 @@
 
 The mrepo service protocol: the service state of an mrepo's external API, and the actions that move it.
 
-The state is in the runtime layer, `/runtime/service.json`. An mrepo that
-has it is service managed. Each action is allowed only in the states its
-config names; it runs the hooks of its transition, the commands in
-`/runtime/hooks/<transition>/`, in its own execution, then moves the state.
-A hook that fails fails the transition. Offered by
+The state is in the runtime layer, `/runtime/service.json`: every mrepo
+has it (the boot mrepo, the root, the one exception). Each action is
+allowed only in the states its config names (another refused, `not
+now`); it runs the hooks of its transition, the lines of
+`/runtime/hooks/<transition>.haicc`, in its own execution, then moves
+the state. A hook that fails fails the transition. Stopped or shut
+down, the mrepo's runtime runs on: only a teardown stops it. Offered by
 `haiccing/base-package-service`.
 
 ## Links

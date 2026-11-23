@@ -47,7 +47,7 @@ test('the runtime: started detached, the store held, asked over its connection, 
     // A request posted to /inbox: taken in, refused as it executes
     // (initialised, not started), answered.
     t.alike(await send(work, { protocol: 'crud', action: 'read', uri: '.' }), { ok: false, error: 'not now: crud read (crud is not active; the service is initialised)' }, 'taken in and answered: the preloaded initialise ran first')
-    t.alike(await ask({ work, op: 'nothing' }), { ok: false, error: 'not a request (status, stop)' })
+    t.alike(await ask({ work, op: 'nothing' }), { ok: false, error: 'not a request (status, stop, decommission)' })
     t.ok((await ask({ work, op: 'stop' }))?.stopping)
     const alive = pid => spawnSync('kill', ['-0', String(pid)], { stdio: 'ignore' }).status === 0
     for (let i = 0; i < 100 && alive(s.pid); i++) await new Promise(resolve => setTimeout(resolve, 100))

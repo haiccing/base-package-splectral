@@ -6,6 +6,7 @@ The tests of mrepo-base-runtime, a section per file, each test by its name.
 
 - the cycle on p2p and on git: initialise (preloaded), start, create, read, delete, refused, stop, shutdown
 - where the layers live on the p2p host: the atomic ones in the store, the rest on disk
+- commission and decommission: the commission hook run after the boot, at every start (a restart runs it again, idempotent), its state in the status, waited for; a decommission asked, its lines run; a line that fails said
 
 ## `fixture.js`
 

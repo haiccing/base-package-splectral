@@ -36,8 +36,7 @@ The target is the rest of the first argument after the package: `/test/<set>`,
 - It is not a package's entry: `not a package's entry`.
 - The target is `/run`: `not run here`. A package's program is not run
   inside the runtime's process.
-- The package is not linked: `not a package of this mrepo`; it is
-  documented only: `documented only here, not run`.
+- The package is not linked: `not a package of this mrepo`.
 - Its bundle is missing, or has no dispatcher.
 
 ## Design

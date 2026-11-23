@@ -28,7 +28,6 @@ export async function run (exec, { args: [subject, ...args] = [] }) {
   }
   const listed = (await read('/packages/manifest.json'))?.packages || {}
   if (!listed[pkg]) throw new Error(`not a package of this mrepo: ${pkg}`)
-  if (listed[pkg].documented) throw new Error(`documented only here, not run: ${pkg}`)
   const bundle = join(exec.runtime.dir, 'packages', `${pkg}.bundle`)
   if (!existsSync(bundle)) throw new Error(`its bundle missing: ${bundle}`)
   const dispatcher = await import(pathToFileURL(bundle).href)
@@ -46,7 +45,7 @@ export async function run (exec, { args: [subject, ...args] = [] }) {
       linked[p] = existsSync(f) ? { sha256: crypto.createHash('sha256').update(readFileSync(f)).digest('hex') } : null
     }
     writeFileSync(join(situ, 'situ.json'), JSON.stringify({
-      info: { index: await read('/info/index.json'), problems: await read('/info/problems.json') },
+      info: { index: await read('/info/index.json'), packages: await read('/info/packages.json'), problems: await read('/info/problems.json') },
       layers: (await exec.runtime.branches()).filter(b => !b.startsWith('execute/')),
       packages: listed,
       linked

@@ -32,7 +32,9 @@ runtime config laid (`runtime/hooks/start.haicc`, ...).
   position for a component`.
 - Nothing deployed there: `not deployed: <position> (boot/deploy
   <position> haiccing/base-package-service first)`.
-- A component there already: deploy and teardown, no upgrade in place.
+- Another component there already: deploy and teardown, no upgrade in
+  place. The same one again is allowed (idempotent): a warning,
+  `installed already`, nothing done, `again: true` in the answer.
 - No component named, or not `<org>/<package>`; not of the `splectral`
   organisation: `not a Splectral component`.
 - Its list: none; not ending with itself; naming another organisation's
@@ -42,14 +44,16 @@ runtime config laid (`runtime/hooks/start.haicc`, ...).
 ## Design
 
 - **What it does**: the component's own list, packages of its
-  organisation, placed in that mrepo's folder on Splectral's side of it;
+  organisation, placed in that mrepo's folder on Splectral's side of it,
+  their schemas registered in the install's registry as a deploy's are;
   its Splectral inbox and outbox made; its runtime config (its `start`
   and `stop` hooks, its program started and ended) laid by the mrepo
   itself (`runtime/lay`).
 - **The mrepo's folder, Splectral's side of it**: `<folder>/splectral/`:
   `packages/` (the bundles and their addons, hard linked from the store,
   as a deploy places an mrepo's own), `inbox/`, `outbox/`, and
-  `component.json`, what was installed. Files of this machine, not
+  `component.json`, what was installed (with `schemas`, the install's
+  registry, where its typed records are read). Files of this machine, not
   layers: nothing of it is the mrepo's runtime's to read, but for the
   runtime config it lays itself.
 - **One writer**: Splectral writes no layer of the component's. The

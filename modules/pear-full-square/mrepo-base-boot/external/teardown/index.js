@@ -1,37 +1,32 @@
 // teardown(exec, { uri }): the boot protocol's teardown (README.md beside it).
 import { rmSync } from 'bare-fs'
-import { stop } from 'mrepo-base-runtime'
-import { segmented, joined } from 'mycelium-uri'
-import { query, REGISTRY, MAIN } from 'mrepo-base-xpath'
+import { stop, decommission } from 'mrepo-base-runtime'
 import { child } from '../../internal/child.js'
 import { teardownPair } from '../../internal/pair/index.js'
 
-// Several at once: a URI into the mrepo registry (main/registry/...: the
-// boot mrepo's) selects mrepos there, by unique URI or by what their
-// nodes say: each torn down at the position that links to it. -> a list
-async function several (exec, uri) {
-  const { found } = await query(exec, uri)
-  const out = []
-  for (const f of found) {
-    // (an mrepo's node says where it is linked; a swarm's node above them does not)
-    const at = f.kind === 'node' ? JSON.parse((await exec.find(`${MAIN}/${f.at}/.node.json`))?.toString() ?? '{}').at : null
-    if (at) out.push(await teardown(exec, { uri: [MAIN, at] }))
-  }
-  exec.log('verbose', 'several', { uri: joined(uri), tornDown: out.length })
-  return out
-}
-const inRegistry = uri => { const u = joined(segmented(uri)); return u === `${MAIN}/${REGISTRY}` || u.startsWith(`${MAIN}/${REGISTRY}/`) }
-
 export async function teardown (exec, { uri }) {
-  if (inRegistry(uri)) return several(exec, uri)
   const c = await child(exec, uri)
   const recorded = await c.recorded()
-  if (!recorded) { await c.refuse(); throw new Error(`not deployed: ${c.at}`) }
+  // Idempotent: not deployed (torn down already): allowed, a warning,
+  // nothing done. Data at the position: not the boot protocol's, refused.
+  if (!recorded) {
+    await c.refuse()
+    exec.log('warn', 'not deployed', { at: c.at })
+    return { tornDown: c.at, again: true }
+  }
   // A pair: torn down by the container's platform, the container and its
   // folder removed (internal/pair); this host never stops its runtime.
   // Else its runtime stopped first (when it runs), waited for until its
   // process has ended (mrepo-base-runtime's stop: asked, then SIGTERM, then
   // SIGKILL), and its folder removed.
+  // Its decommission first, by its runtime (a pair's: by the container's
+  // platform, its own teardown): what the mrepo does before it goes, what
+  // it deployed torn down. A line that fails stops the teardown, nothing
+  // removed. Its runtime not answering: nothing to ask, torn down all the same.
+  if (recorded.how !== 'container') {
+    const d = await exec.step('decommission', r => ({ decommission: r?.decommission ?? null, ...(r?.error ? { error: r.error } : {}) }), () => decommission({ repo: c.dir }))
+    if (d && !d.ok) throw new Error(`not torn down: ${c.at}: its ${d.error}`)
+  }
   const pair = recorded.how === 'container' ? await teardownPair(exec, c, recorded) : null
   const stopped = pair ? null : await exec.step('runtime', r => ({ pid: recorded.runtime?.pid ?? null, stopped: r ?? null }), () => stop({ repo: c.dir, pid: recorded.runtime?.pid }))
   if (!pair) await exec.step('folder', { dir: c.dir }, async () => rmSync(c.dir, { recursive: true, force: true }))
@@ -39,7 +34,6 @@ export async function teardown (exec, { uri }) {
   exec.remove(c.links)
   exec.remove(c.node)
   if (recorded.link && await exec.find(c.local(recorded.link)) !== null) exec.remove(c.local(recorded.link))
-  if (await exec.find(c.registry) !== null) exec.remove(c.registry)
   exec.log('info', 'torn down', { at: c.at, mrepo: c.mrepo, runtime: stopped ?? null, ...(pair ? { container: pair.container } : {}) })
   return pair ? { tornDown: c.at, container: pair.container } : { tornDown: c.at }
 }

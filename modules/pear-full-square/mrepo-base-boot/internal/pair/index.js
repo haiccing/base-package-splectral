@@ -118,10 +118,10 @@ export async function deployPair (exec, c, { target, sources }) {
         await new Promise(resolve => setTimeout(resolve, 200))
       }
     })
-    // The child, by the container's platform: the swarm's node above it
-    // made there with its document, then the child at its position.
+    // The child, by the container's platform: the namespace's node above
+    // it made there with its document, then the child at its position.
     const output = await exec.step('deploy', o => ({ at: c.at, deployed: o?.deployed ?? null }), async () => {
-      if (c.swarmAt) await must(p, ['crud/create', c.swarmAt, JSON.stringify({ kind: 'swarm' })])
+      if (c.nsAt) await must(p, ['crud/create', c.nsAt, JSON.stringify({ kind: c.kind })])
       return must(p, ['boot/deploy', c.at, target])
     })
     return { container: { name: p.name, image: IMAGE }, folder: p.folder, platform: p.platform, pair: relative(exec.runtime.dir, p.dir), packages: output?.packages ?? [] }

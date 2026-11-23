@@ -18,17 +18,16 @@ the boot mrepo: one rule for every mrepo, the first included.
 
 ## Returns
 
-`{ list, documented }`: the packages laid in, in order; and those
-documented only, beyond the list: with `"documents": "sources"` in it,
-every other package the sources offer, fetched, sorted, nothing of them
-laid in.
+`{ list }`: the packages laid in, in order. A list that documents
+beyond itself (`"documents": "store"`) places nothing more: its info
+extraction reads the store.
 
 ## Errors
 
 - The target, or a package it lists, is in neither the store nor the
   sources, or is not as its manifest says.
 - The target lists no packages.
-- Its list documents anything but `sources`: `documents what?`.
+- Its list documents anything but `store`: `documents what?`.
 
 ## Design
 

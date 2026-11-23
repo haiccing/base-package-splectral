@@ -12,6 +12,8 @@ The tests of mrepo-base-boot, a section per file, each test by its name.
 
 The boot protocol's actions, with a context like the execute protocol's (reads from the repository, writes collected, then committed; exec.commit() a local commit).
 
-- documents: sources: every package the sources offer beyond the list placed, documented only: no structure laid in, no entry, no addon
-- deploy from a target package's list, placed by its unique URI, its link recorded; redeploy; teardown; a script answered as a continuation; the mrepo registry, several torn down; a swarm's node
+- documents: store: the list laid in and placed, nothing more: its info extraction reads the store; documents anything else refused
+- schemas: each package placed registers the schemas it carries, its own and its modules', in the install's registry
+- deploy from a target package's list, linked first, placed by its unique URI, its scripts placed; idempotent; redeploy; teardown; the registry, mrepos/; a swarm's node
 - deploy the runtime: the child's runtime started from its own packages, its inbox answering; teardown stops it
+- commission and decommission: the deploy waits for the child's commission, a failed one leaving nothing; the teardown asks for its decommission first, a failed one removing nothing

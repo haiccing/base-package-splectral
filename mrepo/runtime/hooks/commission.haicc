@@ -1,0 +1,3 @@
+# commission: run by the runtime as it starts (a deploy; again at a restart, its lines idempotent); the deploy waits for it
+service/initialise
+service/start

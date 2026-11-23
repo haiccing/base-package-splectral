@@ -46,6 +46,18 @@ test('the hooks: a transition with a hook file waits for its lines, then, resume
   t.is(await start(exec), null, 'start: waits for its hook too')
   await t.exception(start({ ...exec, resumed: { error: 'line 1: protocol/activate . boot: refused' } }), /hook start: line 1: protocol\/activate \. boot: refused/, 'resumed with a failure: the transition fails, the line said')
   t.is((await stateOf(exec)).state, 'initialised', 'the state not moved')
-  t.alike(await stop(exec), { service: 'stopped', state: 'initialised' }, 'no hook file for stop: no wait, the state moved at once')
+  t.alike(await stop(exec), { service: 'stopped', state: 'initialised', again: true }, 'no hook file for stop: no wait; on an initialised service, a repeat: allowed, the state as it is')
+})
+
+test('idempotent: a transition repeated in the state it leads to (or past it) runs its hook again, warns, the state as it is', async (t) => {
+  const exec = context('started', { initialise: 'info/extract\n' })
+  t.is(await initialise(exec), null, 'initialise on a started service: its hook run again, waited for')
+  const resumed = { ...exec, resumed: { output: [{ line: 'info/extract', output: {} }] } }
+  t.alike(await initialise(resumed), { service: 'initialised', state: 'started', again: true }, 'resumed: a repeat, said; the state as it is, started')
+  t.ok(resumed.entries.some(e => e.level === 'warn' && e.event === 'again' && e.transition === 'initialise' && e.state === 'started'), 'a warning in its log')
+  t.alike(await start(exec), { service: 'started', state: 'started', again: true }, 'start on a started service: a repeat')
+  const booted = context('booted')
+  t.alike(await shutdown(booted), { service: 'shut down', state: 'booted', again: true }, 'shutdown on a booted service: a repeat')
+  t.is((await stateOf(exec)).state, 'started', 'nothing moved')
 })
 

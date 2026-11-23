@@ -16,7 +16,6 @@ apps, each served at `/<position>/` (below, "Components").
 - [install](modules/pear-full-square/splectral-server/external/install/)
 - [howto](howto/)
 - [mrepo](mrepo/)
-- [scripts](scripts/)
 - [test](test/)
 - [test-reports](test-reports/)
 - [modules](modules/)

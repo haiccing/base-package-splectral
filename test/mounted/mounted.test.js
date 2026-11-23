@@ -90,6 +90,8 @@ test('the mrepo it defines: its list of packages, itself last; its hooks, file b
     'boot/4': ['protocol/activate', '.', 'info'],
     'boot/5': ['protocol/activate', '.', 'runtime'],
     'boot/6': ['protocol/activate', '.', 'service'],
+    'commission/1': ['service/initialise'],
+    'commission/2': ['service/start'],
     'initialise/1': ['info/extract'],
     'start/1': ['protocol/activate', '.', 'splectral'],
     'start/2': ['splectral/start'],
@@ -103,7 +105,7 @@ test('the mrepo it defines: its list of packages, itself last; its hooks, file b
     const [p, a] = first.split('/')
     if (p === 'splectral') t.ok(mounted.protocols.splectral.actions[a], `${name}: ${first} is an action of the protocol`)
   }
-  t.alike(readFileSync(join(pkg, 'scripts', 'start.haicc'), 'utf8').split('\n').filter(l => l && !l.startsWith('#')), ['service/initialise', 'service/start'], 'its script start: the mrepo brought into service, its start hook starting the server')
+  t.absent(existsSync(join(pkg, 'scripts')), 'no script: its commission brings it into service, its start hook starting the server')
 })
 
 test('the actions: nothing running; what start refuses; its server started from the package\'s own program, asked, ended', { timeout: 60000 }, async (t) => {

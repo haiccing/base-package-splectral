@@ -30,7 +30,7 @@ export function createStructure (root) {
       if (!n || isReplica(at)) return null
       const was = childAt(node, out.deployed)
       if (was) drop(was.uri)
-      nodes.set(out.mrepo, { uri: out.mrepo, parent: node, at: out.deployed, package: out.package ?? null, service: null, container: null })
+      nodes.set(out.mrepo, { uri: out.mrepo, parent: node, at: out.deployed, package: out.package ?? null, service: typeof out.service === 'string' ? out.service : null, container: null })
       return out.mrepo
     }
     // torn down: the child at that position, and what was below it
@@ -42,7 +42,7 @@ export function createStructure (root) {
     }
     if (!n) return null
     // the service moved: the mrepo's own, or its replica's
-    if (typeof out.service === 'string' && typeof out.state === 'string') {
+    if (typeof out.service === 'string' && typeof out.state === 'string' && out.started !== CONTAINER) {
       if (isReplica(at)) { if (!n.container) return null; n.container.service = out.state } else n.service = out.state
       return node
     }
@@ -50,7 +50,7 @@ export function createStructure (root) {
     if (out.created === CONTAINER && out.container?.name) { n.container = { name: out.container.name, state: 'created', service: null }; return node }
     if (out.removed === CONTAINER) { n.container = null; return node }
     if ((out.started === CONTAINER || out.stopped === CONTAINER || out.replica === CONTAINER) && typeof out.state === 'string') {
-      n.container = { name: typeof out.container === 'string' ? out.container : n.container?.name ?? null, state: out.state, service: out.state === 'running' ? n.container?.service ?? null : null }
+      n.container = { name: typeof out.container === 'string' ? out.container : n.container?.name ?? null, state: out.state, service: out.state === 'running' ? (typeof out.service === 'string' ? out.service : n.container?.service ?? null) : null }
       return node
     }
     if (out.replica === null && out.state === 'none' && n.container) { n.container = null; return node }

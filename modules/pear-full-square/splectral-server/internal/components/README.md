@@ -12,6 +12,8 @@ Splectral's components as the server sees them, and the exchange with each over 
   `mreposOf`).
 - `ask({ boot, root, form, timeout })`: a data request run.
 - `recordOf(dir, position)`: where a component's record is.
+- `typedBox(rec)`: a component's inbox for typed answers, its records
+  AVRO by the install's registry (its record's `schemas`).
 - `SIDE` (`splectral`), `COMPONENTS` (`components`), `TOPIC`
   (`/splectral`, where a completed form goes back).
 
@@ -43,13 +45,23 @@ None thrown: what fails is the form's `error`. Its program not running
     mrepo's inbox, tagged as from outside (`haicc <at> <command>`), its
     completed form written into the component's inbox under the same key;
     `raw: true` asks for the response whole as well (`record`), what the
-    terminal reads and prints;
+    terminal reads and prints; `as: <schema URI>` asks for the answer
+    typed: written back as AVRO (`internal/typed`), its output as that
+    schema where it is valid as it, else `json`, when the component's
+    record names the install's registry (`schemas`); without one, JSON;
   - the install's mrepos, by the component, in its outbox: `{ request:
     "mrepos" }`: answered by the server from what it knows, its
     structure, nothing run: `output` `{ version, mrepos: [{ at, depth,
     package }] }`, each mrepo by the position a command names it with
     (`.`, `docs`, `splectral/help`); `version` moves when the structure
-    changes, so a component knows when what it keeps is stale.
+    changes, so a component knows when what it keeps is stale;
+  - an mrepo by its unique URI, by the component, in its outbox: `{
+    request: "mrepo", uri }`: resolved at the root from the install's
+    registry (`haicc . haicc/mrepos <uri>`): `output` `{ uri, position
+    }`, its position from the root through the links, what a data
+    request's `at` is (`local/docs` at `workbench/docs`); kept while the
+    structure is the same. Not in the registry, or not reachable from the
+    root: an error.
 - **The boxes are queues**: a record taken is removed, by whoever reads
   that box. What a component keeps comes later, with commit times.
 - **A watcher at each end**: the server follows each component's outbox

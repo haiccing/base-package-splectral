@@ -3,10 +3,10 @@
 A child deployed into a Docker container, run there by the container's own haicc install: the pair deploy.
 
 The container's platform, its boot mrepo, executes the platform commands
-on the child (its deploy, its teardown) and its registry has it; this
-mrepo links it, has it in its own registry, and forwards to it as to any
+on the child (its deploy, its teardown) and its `mrepos/` has it; this
+mrepo links it and forwards to it as to any
 linked mrepo, through its inbox and outbox folders. The container's haicc
-home is a folder of this host's, `<work>/containers/<swarm>/<name>/`,
+home is a folder of this host's, `<work>/containers/<unique URI>/`,
 mounted into it: this host uses only the inboxes and outboxes in it.
 
 ## Signature

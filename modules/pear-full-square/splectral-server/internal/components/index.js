@@ -5,7 +5,10 @@ import fs, { existsSync, readdirSync, readFileSync, mkdirSync, rmSync } from 'ba
 import { join } from 'bare-path'
 import { record, wrap, guid, inboxOf } from 'mrepo-base-request'
 import { programState } from 'mrepo-base-runtime'
+import { documents } from 'mycelium-container-document'
+import { registry } from 'mycelium-value-avro'
 import { follow } from '../records/index.js'
+import { encodeAnswer, decodeAnswer } from '../typed/index.js'
 
 // A component's Splectral side, in its mrepo's folder: its packages, its
 // inbox and outbox, what was installed (component.json).
@@ -16,6 +19,13 @@ export const recordOf = (dir, at) => join(dir, COMPONENTS, `${at}.json`)
 // Where a completed form goes back: the topic of Splectral's requests.
 export const TOPIC = '/splectral'
 
+// A component's inbox for typed answers: its records AVRO, by the
+// install's registry.
+export const typedBox = rec => {
+  const reg = registry(rec.schemas)
+  return documents(join(rec.folder, SIDE, 'inbox'), { extension: 'avro', encode: envelope => encodeAnswer(reg, envelope), decode: bytes => decodeAnswer(reg, bytes) })
+}
+
 const completed = form => form && typeof form === 'object' && ('output' in form || 'error' in form)
 
 // dir: Splectral's own folder; boot: the root mrepo's folder (its inbox
@@ -24,12 +34,36 @@ const completed = form => form && typeof form === 'object' && ('output' in form 
 export function createComponents ({ dir, boot, root, mrepos = () => ({ version: 0, mrepos: [] }), wait = 20000, timeout = 120, every = 2000 }) {
   const known = new Map()
   const pending = new Map()
+  // An mrepo by its unique URI, resolved at the root from the install's
+  // registry (haicc/mrepos): its position from the root, through the
+  // links. Kept while the install's structure is the same.
+  const resolved = new Map()
+  const resolve = async uri => {
+    if (typeof uri !== 'string' || !/^[a-z][a-z0-9-]*(\/[a-z][a-z0-9-]*)+$/.test(uri)) return { error: `not a unique URI: ${uri} (<namespace>/<name>)` }
+    const id = `${mrepos().version}:${uri}`
+    if (resolved.has(id)) return resolved.get(id)
+    const asked = await ask({ boot, root, form: { at: '.', command: ['haicc/mrepos', uri] }, timeout })
+    if ('error' in asked) return asked
+    const found = (asked.output ?? []).find(m => m.uri === uri)
+    if (!found) return { error: `no mrepo ${uri} in the install's registry` }
+    if (found.position === null) return { error: `${uri}: not reachable from the root` }
+    const answer = { output: { uri, position: found.position } }
+    resolved.set(id, answer)
+    return answer
+  }
   const folder = join(dir, COMPONENTS)
   mkdirSync(folder, { recursive: true })
   // A component's record read; its outbox followed: a page answered, a
   // data request run, the install's mrepos said. Each record taken is
   // removed: the boxes are queues.
-  const back = (rec, key, form) => inboxOf(join(rec.folder, SIDE)).write(key, wrap(`/${rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, form, key) }))
+  // A data answer asked for typed (`as`), where the component knows the
+  // install's registry (its record's `schemas`): AVRO (internal/typed);
+  // else JSON, as every other record.
+  const back = (rec, key, form) => {
+    const envelope = wrap(`/${rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, form, key) })
+    if (typeof form.as === 'string' && rec.schemas) return typedBox(rec).write(key, envelope)
+    inboxOf(join(rec.folder, SIDE)).write(key, envelope)
+  }
   const take = (at, rec) => (envelope, file) => {
     const form = envelope?.value?.value
     const out = join(rec.folder, SIDE, 'outbox', file)
@@ -46,6 +80,11 @@ export function createComponents ({ dir, boot, root, mrepos = () => ({ version: 
     if (form?.request === 'mrepos' && !completed(form)) {
       rmSync(out, { force: true })
       back(rec, envelope.key, { ...form, output: mrepos() })
+      return
+    }
+    if (form?.request === 'mrepo' && !completed(form)) {
+      rmSync(out, { force: true })
+      resolve(form.uri).then(answer => back(rec, envelope.key, { ...form, ...answer }))
     }
   }
   const load = () => {

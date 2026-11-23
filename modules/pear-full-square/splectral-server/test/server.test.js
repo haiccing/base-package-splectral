@@ -102,6 +102,8 @@ test('the install folded from its completed records: its mrepos a tree, each wit
   t.is(s.apply(done(['local/host', 'swarm-1/node-1'], { created: 'container', mrepo: 'swarm-1/node-1/container', container: { name: 'haicc-swarm-1-node-1-abc', image: 'haicc-node:x' } })), 'swarm-1/node-1', 'its replica made: the node changed, no node of its own')
   t.alike(at('swarm-1/node-1').container, { name: 'haicc-swarm-1-node-1-abc', state: 'created', service: null }, 'the node\'s container: made')
   s.apply(done(['local/host', 'swarm-1/node-1'], { started: 'container', container: 'haicc-swarm-1-node-1-abc', state: 'running' }))
+  s.apply(done(['local/host', 'swarm-1/node-2'], { started: 'container', container: 'haicc-swarm-1-node-2-abc', state: 'running', service: 'started' }))
+  t.is(at('swarm-1/node-2').container?.service, 'started', 'a container started, its replica\'s service said with it (its commission done): that state')
   t.is(s.apply(done(['local/host', 'swarm-1/node-1', 'swarm-1/node-1/container'], { service: 'started', state: 'started' })), 'swarm-1/node-1', 'a service command executed in the replica: its node changed')
   t.alike([at('swarm-1/node-1').service, at('swarm-1/node-1').container, s.snapshot().nodes.length], ['started', { name: 'haicc-swarm-1-node-1-abc', state: 'running', service: 'started' }, 4], 'the node: its own state, its container running with the replica\'s state; four nodes still')
   t.is(s.apply(done(['local/host', 'swarm-1/node-1', 'swarm-1/node-1/container'], { deployed: 'x', mrepo: 'swarm-1/x' })), null, 'a deploy inside a replica: not shown')
@@ -116,7 +118,8 @@ test('the install folded from its completed records: its mrepos a tree, each wit
   t.is(s.apply(done(['local/elsewhere'], { service: 'started', state: 'started' })), null, 'executed in an mrepo it does not know: nothing')
   t.is(s.apply({ mode: 'atomic' }), null, 'no record: nothing')
   // torn down: the node and what was below it
-  t.is(s.apply(done([], { deployed: 'splectral', mrepo: 'local/splectral', package: 'haiccing/base-package-splectral' })), 'local/splectral')
+  t.is(s.apply(done([], { deployed: 'splectral', mrepo: 'local/splectral', package: 'haiccing/base-package-splectral', commission: 'done', service: 'started' })), 'local/splectral')
+  t.is(at('local/splectral').service, 'started', 'a deploy that says its service state, its commission done: that state')
   t.is(s.apply(done([], { tornDown: 'host' })), 'local/boot', 'a teardown executed at the root: its child gone; the root changed')
   t.alike(s.snapshot().nodes.map(x => x.uri), ['local/boot', 'local/splectral'], 'the host and the nodes below it gone')
   t.alike([s.apply(done([], [{ tornDown: 'splectral' }, { tornDown: 'nothing' }])), s.snapshot().nodes.length], ['local/boot', 1], 'several torn down at once: a list, each taken')
@@ -291,7 +294,7 @@ test('the actions: start, status, stop; what start refuses', { timeout: 60000 },
 })
 
 
-test('a component: a page asked through its Splectral inbox, its data request run through the root mrepo\'s inbox, the page served; one not answering; one not running', { timeout: 60000 }, async (t) => {
+test('a component: a page asked through its Splectral inbox, its data request run through the root mrepo\'s inbox, the page served; an mrepo by its unique URI resolved, kept; one not answering; one not running', { timeout: 60000 }, async (t) => {
   const work = mkdtempSync(join(tmpdir(), 'splectral-components-'))
   const boot = join(work, 'mrepos', 'boot')
   const dir = join(work, 'mrepos', 'local', 'splectral')
@@ -303,11 +306,13 @@ test('a component: a page asked through its Splectral inbox, its data request ru
   const root = follow(join(boot, 'inbox'), (envelope) => {
     const core = envelope.value
     asked.push({ topic: envelope.topic, parts: core.value, trigger: core.headers.trigger })
-    put(join(boot, 'outbox'), core.key, { topic: core.topic, key: core.key, timestamp: new Date().toISOString(), headers: {}, value: { ...core, value: { command: core.value, output: { page: '# Validation\n\nBefore every commit.' } } } })
+    // (the registry consulted: haicc/mrepos <xpath>, its mrepos and where they are)
+    const output = core.value[0] === 'haicc/mrepos' ? [{ uri: 'local/docs', position: 'workbench/docs', package: 'haiccing/base-component-docs', running: true }, { uri: 'local/lost', position: null, package: null, running: false }].filter(m => m.uri === core.value[1]) : { page: '# Validation\n\nBefore every commit.' }
+    put(join(boot, 'outbox'), core.key, { topic: core.topic, key: core.key, timestamp: new Date().toISOString(), headers: {}, value: { ...core, value: { command: core.value, output } } })
   }, { every: 200 })
   // the component's renderer, as far as the test goes: a page asked, data asked for it, the page answered
   const pages = []
-  const answered = { records: [], mrepos: [] }
+  const answered = { records: [], mrepos: [], mrepo: [] }
   // its data request's key, the page's with its first digit changed: never the page's own (a key seen once in a folder is not taken again)
   const dataKey = key => `${key[0] === 'd' ? 'e' : 'd'}${key.slice(1)}`
   const renderer = follow(join(viewer, SIDE, 'inbox'), (envelope, file) => {
@@ -318,6 +323,8 @@ test('a component: a page asked through its Splectral inbox, its data request ru
       put(join(viewer, SIDE, 'outbox'), dataKey(envelope.key), { topic: '/splectral', key: dataKey(envelope.key), timestamp: new Date().toISOString(), headers: { page: envelope.key }, value: { topic: '/local/viewer/splectral/inbox', key: dataKey(envelope.key), timestamp: new Date().toISOString(), headers: {}, value: { request: 'data', at: 'docs', command: ['info/get', form.path], raw: true } } })
     } else if (form.request === 'mrepos') {
       answered.mrepos.push(form.output)
+    } else if (form.request === 'mrepo') {
+      answered.mrepo.push('error' in form ? { error: form.error } : form.output)
     } else if (form.request === 'data') {
       answered.records.push(form.record)
       const key = pages.at(-1).key
@@ -348,6 +355,20 @@ test('a component: a page asked through its Splectral inbox, its data request ru
     put(join(viewer, SIDE, 'outbox'), 'm0000000-0000-4000-8000-000000000000', { topic: '/splectral', key: 'm0000000-0000-4000-8000-000000000000', timestamp: new Date().toISOString(), headers: {}, value: { topic: '/local/viewer/splectral/inbox', key: 'm0000000-0000-4000-8000-000000000000', timestamp: new Date().toISOString(), headers: {}, value: { request: 'mrepos' } } })
     t.ok(await until(() => answered.mrepos.length === 1), 'the install\'s mrepos asked: answered by the server')
     t.alike(answered.mrepos[0], { version: 0, mrepos: [{ at: '.', depth: 0, package: null }] }, 'from its structure, nothing run: the root alone here, no record having said more')
+    // an mrepo by its unique URI: resolved at the root from the registry, kept
+    const mrepo = (n, uri) => put(join(viewer, SIDE, 'outbox'), `a000000${n}-0000-4000-8000-000000000000`, { topic: '/splectral', key: `a000000${n}-0000-4000-8000-000000000000`, timestamp: new Date().toISOString(), headers: {}, value: { topic: '/local/viewer/splectral/inbox', key: `a000000${n}-0000-4000-8000-000000000000`, timestamp: new Date().toISOString(), headers: {}, value: { request: 'mrepo', uri } } })
+    mrepo(1, 'local/docs')
+    t.ok(await until(() => answered.mrepo.length === 1), 'an mrepo by its unique URI asked: answered')
+    t.alike([answered.mrepo[0], asked.at(-1).parts], [{ uri: 'local/docs', position: 'workbench/docs' }, ['haicc/mrepos', 'local/docs']], 'its position from the root, as haicc/mrepos at the root says it from the registry')
+    const n = asked.length
+    mrepo(2, 'local/docs')
+    t.ok(await until(() => answered.mrepo.length === 2), 'asked again')
+    t.alike([answered.mrepo[1], asked.length], [{ uri: 'local/docs', position: 'workbench/docs' }, n], 'kept: nothing asked of the root again')
+    mrepo(3, 'local/none')
+    mrepo(4, 'local/lost')
+    mrepo(5, 'docs')
+    t.ok(await until(() => answered.mrepo.length === 5), 'three more asked')
+    t.alike(answered.mrepo.slice(2).map(a => a.error).sort(), ['not a unique URI: docs (<namespace>/<name>)', 'local/lost: not reachable from the root', 'no mrepo local/none in the install\'s registry'].sort(), 'not in the registry, not reachable, not a unique URI: each said')
     const none = await ask(`${s.url}/quiet/x`)
     t.is(none.status, 504, 'a component that does not answer: said')
     t.ok(none.body.includes('is its service started?'))

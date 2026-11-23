@@ -72,6 +72,20 @@ export function scriptOf ({ store, pkg, name }) {
 // The names of a package's scripts.
 export const scriptsOf = ({ store, pkg }) => Object.keys(Bundle.from(readFileSync(join(store, `${pkg}.bundle`))).files).filter(k => /^\/scripts\/[^/]+\.haicc$/.test(k)).map(k => k.slice('/scripts/'.length, -'.haicc'.length)).sort()
 
+// A package's scripts placed in the install's scripts folder, where the
+// haicc command reads them by name: <scripts>/<org>/<package>/<name>.haicc,
+// written over (idempotent). -> the names placed
+export function placeScripts ({ store, pkg, into }) {
+  const bundle = Bundle.from(readFileSync(join(store, `${pkg}.bundle`)))
+  const names = scriptsOf({ store, pkg })
+  for (const name of names) {
+    const to = join(into, ...pkg.split('/'), `${name}.haicc`)
+    mkdirSync(dirname(to), { recursive: true })
+    writeFileSync(to, bundle.read(`/scripts/${name}.haicc`))
+  }
+  return names
+}
+
 export function put (from, to) {
   mkdirSync(dirname(to), { recursive: true })
   rmSync(to, { force: true })

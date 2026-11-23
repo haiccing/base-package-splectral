@@ -4,8 +4,9 @@ import fs, { mkdtempSync, rmSync, existsSync } from 'bare-fs'
 import { join, dirname } from 'bare-path'
 import { tmpdir } from 'bare-os'
 import { fileURLToPath } from 'bare-url'
-import { openRepo, p2pgitBackend } from 'mycelium-git'
-import { start, ask, open } from '../index.js'
+import { openRepo, p2pgitBackend, nativeBackend } from 'mycelium-git'
+import { gitdirOf } from 'mrepo-base-request'
+import { start, ask, open, commissioned, decommission } from '../index.js'
 import { bootedHost, send, sendForm } from './fixture.js'
 
 const here = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -53,8 +54,8 @@ for (const storage of ['p2p', 'git']) {
       t.alike(told.flags, { log: 'verbose' }, 'flags written with a command: in the form, as written')
       t.alike(told.log.map(e => [e.level, e.event]), [['verbose', 'crud.read.segment'], ['verbose', 'crud.read.query'], ['info', 'request.metrics']], 'log=verbose: the action\'s steps too')
       const odd = (await sendForm(work, { command: ['crud/read', 'notes/hello', '--flags', 'log=verbose', 'nope'] })).value
-      t.alike([odd.output, 'error' in odd], [{ run: false, command: 'crud/read notes/hello --flags log=verbose nope', why: ['no flag: nope (container, continuation, feedback, help, layer, log)'] }, false], 'a flag that is none: nothing of it run; completed, not failed, said why')
-      t.alike(odd.log.map(e => [e.level, e.event, e.reason]), [['warn', 'request.flag', 'no flag: nope (container, continuation, feedback, help, layer, log)']], 'the reason a warning in its log')
+      t.alike([odd.output, 'error' in odd], [{ run: false, command: 'crud/read notes/hello --flags log=verbose nope', why: ['no flag: nope (container, feedback, help, layer, log)'] }, false], 'a flag that is none: nothing of it run; completed, not failed, said why')
+      t.alike(odd.log.map(e => [e.level, e.event, e.reason]), [['warn', 'request.flag', 'no flag: nope (container, feedback, help, layer, log)']], 'the reason a warning in its log')
       t.alike(await send(work, req('crud', 'delete', 'notes', 'recurse')), { ok: true, value: [{ ...NOTES, outcome: 'deleted' }] }, 'deleted, with what was below it')
       t.alike(await send(work, req('service', 'stop', '.')), { ok: true, value: { service: 'stopped', state: 'initialised' } })
       t.alike(await send(work, req('crud', 'read', '.')), { ok: false, error: 'not now: crud read (crud is not active; the service is initialised)' }, 'stopped: crud deactivated by the stop hook, not available')
@@ -132,4 +133,47 @@ test('where the layers live on the p2p host: the atomic ones in the store, the r
       t.alike((await host.backend.listBranches()).map(([n]) => n), ['main', 'packages', 'protocols', 'runtime'], 'in the store: the atomic layers only')
     } finally { await store.close() }
   } finally { rmSync(work, { recursive: true, force: true }) }
+})
+
+test('commission and decommission: the commission hook run after the boot, at every start (a restart runs it again, idempotent), its state in the status, waited for; a decommission asked, its lines run; a line that fails said', { timeout: 120000 }, async (t) => {
+  for (const [name, more, expect] of [
+    ['done', { commission: 'crud/create notes/commissioned\n', decommission: 'crud/create notes/decommissioned\n' }, { state: 'done' }],
+    ['failed', { commission: 'crud/create notes/a\ncrud/create .\ncrud/create notes/b\n' }, null],
+    ['none', {}, { state: 'none' }]
+  ]) {
+    const work = mkdtempSync(join(tmpdir(), `commission-${name}-`))
+    try {
+      await bootedHost(work, { more, storage: 'git' })
+      const s = await start({ work, bundle: join(here, 'test', 'runtime.js') })
+      t.ok(s?.commission, `${name}: its commission in the status from the start: ${s?.commission?.state}`)
+      const c = await commissioned({ work, wait: 60000 })
+      if (expect) t.alike(c, expect, `${name}: waited for until it is ${expect.state}`)
+      else {
+        t.is(c.state, 'failed', 'failed: said')
+        t.ok(/^line 2: crud\/create \.: missing argument: target/.test(c.error), `the line that failed and why: ${c.error}`)
+      }
+      const repo = () => openRepo(nativeBackend(gitdirOf(work, 'host')))
+      if (name === 'done') {
+        t.ok(await repo().find('/main/notes/commissioned/.node.json'), 'its lines run as the mrepo\'s own: before its start, crud not active, not asked')
+        t.alike(await decommission({ work }), { ok: true, decommission: 'done' }, 'a decommission asked: its lines run, answered when done')
+        t.ok(await repo().find('/main/notes/decommissioned/.node.json'), 'what its lines did')
+        t.alike((await ask({ work, op: 'status' }))?.commission, { state: 'done' }, 'done, said in the status')
+      }
+      if (name === 'none') t.alike(await decommission({ work }), { ok: true, decommission: 'none' }, 'no decommission hook: none')
+      if (name === 'failed') t.absent(await repo().find('/main/notes/b/.node.json'), 'nothing after the line that failed')
+      t.ok((await ask({ work, op: 'stop' }))?.stopping, 'stopped')
+      for (let i = 0; i < 100 && alive(s.pid); i++) await wait(100)
+      t.absent(alive(s.pid))
+      if (name === 'done') {
+        // started again (a restart; a replica's runtime, with its container):
+        // its commission run again, its lines idempotent
+        t.absent(await repo().find('/runtime/commission.json'), 'nothing recorded of it: no marker')
+        const again = await start({ work, bundle: join(here, 'test', 'runtime.js') })
+        t.ok(again?.commission, 'started again: its commission there again')
+        t.alike(await commissioned({ work, wait: 60000 }), { state: 'done' }, 'run again, done: what it made there already, left as it is')
+        await ask({ work, op: 'stop' })
+        for (let i = 0; i < 100 && alive(again.pid); i++) await wait(100)
+      }
+    } finally { rmSync(work, { recursive: true, force: true }) }
+  }
 })

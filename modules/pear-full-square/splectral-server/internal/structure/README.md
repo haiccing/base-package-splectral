@@ -22,8 +22,8 @@ record that was sent on nowhere was executed.
   changed so far; the nodes each parent before its children, the
   children by position. A node: `{ uri, parent, at, package, service,
   container, depth }`: its unique URI, its parent's, its position
-  there, the package it was deployed from, its service state (`null`
-  until a service command said one), and its container: `null`, or
+  there, the package it was deployed from, its service state (as its
+  deploy said it, its commission done; `null` until one said it), and its container: `null`, or
   `{ name, state, service }`: Docker's state as last said, and the
   replica's service state.
 

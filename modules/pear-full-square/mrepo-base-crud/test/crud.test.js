@@ -1,6 +1,11 @@
 // The crud actions on an execution written here: its files by path, read
 // and selected as a repository would, its writes applied at once.
 import test from 'brittle'
+import { mkdtempSync, rmSync } from 'bare-fs'
+import { join } from 'bare-path'
+import { tmpdir } from 'bare-os'
+import { registry, schemasOf } from 'mycelium-value-avro'
+import { record, complete, encodeRecord } from 'mrepo-base-request'
 import { create, read, remove, place, NODE } from '../index.js'
 
 const B = v => Buffer.from(JSON.stringify(v))
@@ -121,6 +126,21 @@ test('read: a file is its own document: the records of another layer', async (t)
   t.alike((await read(exec, { uri: at("done/*[value/uri='host']") })).map(n => n.uri[1]), ['done/r1.json'], 'a list in a filter: any of its items')
   t.alike((await read(exec, { uri: at('done/note') }))[0].value, 'a text', 'not JSON: its text')
   await t.exception(remove(exec, { uri: at('done/r1.json') }), /not a node: done\/r1\.json \(a file; crud\/delete removes nodes\)/, 'delete removes nodes, not files')
+})
+
+test('read: a binary record (AVRO) is decoded, every level, by the install\'s registry', async (t) => {
+  const store = mkdtempSync(join(tmpdir(), 'crud-store-'))
+  try {
+    const reg = registry(schemasOf(store))
+    const done = complete(record('/local/host/outbox', { protocol: 'crud', action: 'read', uri: ['main', 'swarms'], args: [] }, 'r3'), { ok: true, value: [{ uri: ['main', 'swarms'], children: ['swarm-1'] }] })
+    const { exec } = execution({ '/packages/manifest.json': B({ store }), '/request/done/r3.avro': encodeRecord(reg, done) })
+    const [node] = await read(exec, { uri: ['request', 'done/r3.avro'] })
+    t.alike([node.value.value.protocol, node.value.value.action, node.value.value.uri], ['crud', 'read', ['main', 'swarms']], 'its form, the level below the record, as written')
+    t.alike(node.value.value.output, done.value.output, 'its output, the level below that, decoded in its place')
+    t.alike([node.value.key, node.value.timestamp], [done.key, done.timestamp], 'the record around it')
+    const unknown = execution({ '/packages/manifest.json': B({ store: join(store, 'none') }), '/request/done/r3.avro': encodeRecord(reg, done) })
+    await t.exception(read(unknown.exec, { uri: ['request', 'done/r3.avro'] }), /unknown schema/, 'a fingerprint the registry does not know: an error')
+  } finally { rmSync(store, { recursive: true, force: true }) }
 })
 
 test('delete: the nodes selected made sure to be gone; children only with recurse; idempotent', async (t) => {

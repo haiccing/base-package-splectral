@@ -96,11 +96,13 @@ export function whereOf (at) {
   const { work, repo } = typeof at === 'string' ? { work: at } : at
   // dir: the mrepo's own folder (its .git, inbox, packages); work: where
   // its store and Bare are reached (the work folder; for an mrepo by its
-  // directory, the parent of mrepos/ when it is <work>/mrepos/<name>, or
-  // <work>/mrepos/<swarm>/<name>, placed by its unique URI; else none:
-  // reached through its packages manifest)
+  // directory, the parent of the nearest mrepos/ above it: it is
+  // <work>/mrepos/<name>, or <work>/mrepos/<unique URI>, placed by its
+  // unique URI, a path; else none: reached through its packages manifest)
   if (repo) {
-    const work = basename(dirname(repo)) === MREPOS ? dirname(dirname(repo)) : basename(dirname(dirname(repo))) === MREPOS ? dirname(dirname(dirname(repo))) : null
+    let up = dirname(repo)
+    while (basename(up) !== MREPOS && dirname(up) !== up) up = dirname(up)
+    const work = basename(up) === MREPOS ? dirname(up) : null
     return { dir: repo, work, name: basename(repo), storage: 'filesystem', socket: socketIn(repo) }
   }
   const s = setting(work)
@@ -156,7 +158,7 @@ export async function run ({ work: w, repo: given = null, every = 200, idle = 20
   // No log of its own: what happens to a request is in its document and the
   // commits that moved it.
   const ctx = { work, dir, name: repo.name, backend: repo.backend, repo: openRepo(repo.backend), writer: writer(repo.backend), seen: {} }
-  // Its unique URI (<swarm>/<node>), from its runtime layer; its name where
+  // Its unique URI (<swarm>/<node>, a path), from its runtime layer; its name where
   // it has none: how it is addressed (its inbox's topic, its requests').
   ctx.uri = await ctx.repo.read(IDENTITY).then(b => JSON.parse(b.toString()).uri, () => null) ?? repo.name
   // A record into its own inbox, as its storage takes one: the inbox layer
@@ -195,8 +197,36 @@ export async function run ({ work: w, repo: given = null, every = 200, idle = 20
   // what is activated, extracted or made ready at boot is the hook's.
   const starting = [(await internal(ctx, { command: ['protocol/activate', '.', 'protocol'] })).name]
   const boot = await hookOf(ctx.repo, 'boot')
+  // Its commission: what the mrepo does once deployed, after its boot: its
+  // components deployed (each commissioned by its own), its service
+  // initialised, started, as its package says. At every start: a runtime
+  // started again (a replica's, with its container; a restart) runs it
+  // again, and its lines, idempotent, do again only what is not done (a
+  // deploy of what is there: a warning). Its state in the status, which
+  // the deploy waits on: none (no hook), pending, running, done, failed
+  // (the line that failed, why).
+  const commission = await hookOf(ctx.repo, 'commission')
+  ctx.commission = { state: commission === null ? 'none' : 'pending' }
+  const commissioning = () => {
+    if (commission === null) return
+    ctx.commission = { state: 'running' }
+    // catch: a line that failed is in its own record and in the state; the runtime goes on
+    Promise.resolve().then(() => runLines({ dir: dir ?? viewOf(work, repo.name), uri: ctx.uri, own: ctx.own }, parse(commission), '.'))
+      .then(() => { ctx.commission = { state: 'done' }; wake() }, err => { ctx.commission = { state: 'failed', error: err.message } })
+  }
+  // Its decommission, asked by a teardown before the runtime is stopped:
+  // what the mrepo does before it goes (what it deployed torn down). ->
+  // { ok, decommission: none | done } or { ok: false, error }
+  const decommissioning = async () => {
+    const hook = await hookOf(ctx.repo, 'decommission')
+    if (hook === null) return { ok: true, decommission: 'none' }
+    try {
+      await runLines({ dir: dir ?? viewOf(work, repo.name), uri: ctx.uri, own: ctx.own }, parse(hook), '.')
+      return { ok: true, decommission: 'done' }
+    } catch (err) { return { ok: false, error: `decommission: ${err.message}` } }
+  }
   ctx.intake = false
-  const status = () => ({ ok: true, pid: process.pid, started, repository: { name: repo.name, uri: ctx.uri, storage: repo.storage, id: repo.id, key: repo.key }, version })
+  const status = () => ({ ok: true, pid: process.pid, started, repository: { name: repo.name, uri: ctx.uri, storage: repo.storage, id: repo.id, key: repo.key }, commission: { state: ctx.commission.state, ...(ctx.commission.error ? { error: ctx.commission.error } : {}) }, version })
   let stopping = null
   let stopped = false
   let server = null
@@ -227,7 +257,8 @@ export async function run ({ work: w, repo: given = null, every = 200, idle = 20
         try { req = JSON.parse(line) } catch {}
         if (req?.op === 'status') pipe.write(JSON.stringify(status()) + '\n')
         else if (req?.op === 'stop') { pipe.end(JSON.stringify({ ok: true, stopping: true }) + '\n'); stop('asked') }
-        else pipe.write(JSON.stringify({ ok: false, error: 'not a request (status, stop)' }) + '\n')
+        else if (req?.op === 'decommission') decommissioning().then(r => pipe.write(JSON.stringify(r) + '\n'))
+        else pipe.write(JSON.stringify({ ok: false, error: 'not a request (status, stop, decommission)' }) + '\n')
       }
     })
     pipe.on('error', () => {})
@@ -292,13 +323,12 @@ export async function run ({ work: w, repo: given = null, every = 200, idle = 20
       // operational once its own requests are done: the inbox taken in
       // catch: not in done yet: its own requests still going, not operational yet
       if (ctx.intake === false && (await Promise.all(starting.map(n => layer(ctx, DONE).read(n).then(() => true, () => false)))).every(Boolean)) {
-        if (boot === null) ctx.intake = true
-        else {
+        if (boot === null) { ctx.intake = true; commissioning() } else {
           ctx.intake = 'internal'
           // the boot hook's lines, each its own request; whatever came of
           // them, the inbox open after
           // catch: a line that failed is in its own record; the boot goes on
-          Promise.resolve().then(() => runLines({ dir: dir ?? viewOf(work, repo.name), uri: ctx.uri, own: ctx.own }, parse(boot), '.')).catch(() => null).then(() => { ctx.intake = true; wake() })
+          Promise.resolve().then(() => runLines({ dir: dir ?? viewOf(work, repo.name), uri: ctx.uri, own: ctx.own }, parse(boot), '.')).catch(() => null).then(() => { ctx.intake = true; commissioning(); wake() })
         }
       }
       // the lines queued as the mrepo's own: placed now, between passes
@@ -370,6 +400,28 @@ export function ask ({ work, repo = null, op, timeout = 5000 }) {
     pipe.write(JSON.stringify({ op }) + '\n')
   })
 }
+
+// commissioned({ repo }): an mrepo's commission waited for, as its status
+// says it: until it is done or failed, or its runtime is gone. A deploy
+// waits on it. -> { state: none | done | failed, error } ; null: no runtime
+// answering. wait: the bound, in ms (a solution's commission deploys its
+// components: minutes).
+export async function commissioned ({ work, repo = null, wait = 30 * 60 * 1000 }) {
+  for (const end = Date.now() + wait; ;) {
+    const s = await ask({ work, repo, op: 'status', timeout: 2000 })
+    if (!s) return null
+    const c = s.commission ?? { state: 'none' }
+    if (c.state !== 'pending' && c.state !== 'running') return c
+    if (Date.now() >= end) return { state: 'failed', error: `not done in ${Math.round(wait / 1000)} s` }
+    await new Promise(resolve => setTimeout(resolve, 200))
+  }
+}
+
+// decommission({ repo }): an mrepo asked to decommission, its hook's lines
+// run by its runtime, waited for: what a teardown does before it stops it.
+// -> { ok, decommission: none | done } or { ok: false, error }; null: no
+// runtime answering.
+export const decommission = ({ work, repo = null, wait = 30 * 60 * 1000 }) => ask({ work, repo, op: 'decommission', timeout: wait })
 
 // start({ repo, bundle }): an mrepo's runtime by its directory, from a
 // runtime package's bundle (its entry takes the directory).

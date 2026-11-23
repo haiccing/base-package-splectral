@@ -34,13 +34,13 @@ export async function install (exec, { store, sources, target, dir, uri, laid = 
   // runtime config from the last only; built at its own place.
   const tmp = mkdtempSync(join(tmpdir(), 'install-'))
   try {
-    const { list, documented } = await exec.step('lay', r => ({ package: target, packages: r.list.length, documented: r.documented.length }), async () => lay({ store, sources, target, into: tmp }))
+    const { list } = await exec.step('lay', r => ({ package: target, packages: r.list.length }), async () => lay({ store, sources, target, into: tmp }))
     // Its identity, in its runtime layer (where it has one): its unique URI.
     if (existsSync(join(tmp, 'runtime', 'layer.json'))) writeFileSync(join(tmp, 'runtime', 'mrepo.json'), JSON.stringify({ uri }, null, 2) + '\n')
     if (laid) laid(tmp)
     mkdirSync(dirname(dir), { recursive: true })
     const { layers } = await exec.step('build', r => ({ dir, layers: Object.keys(r.layers).length }), () => build({ from: tmp, dir, setting: false }))
-    const { packages } = await exec.step('place', r => ({ packages: Object.keys(r.packages).length }), () => place({ dir, store, sources, list, documented }))
+    const { packages } = await exec.step('place', r => ({ packages: Object.keys(r.packages).length }), () => place({ dir, store, sources, list }))
     return { package: target, packages: Object.keys(packages), layers }
   } finally { rmSync(tmp, { recursive: true, force: true }) }
 }
