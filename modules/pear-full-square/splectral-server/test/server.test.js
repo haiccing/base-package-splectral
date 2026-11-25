@@ -10,8 +10,9 @@ import { spawn } from 'bare-subprocess'
 import { mkdtempSync, mkdirSync, writeFileSync, renameSync, rmSync, existsSync, readFileSync, readdirSync } from 'bare-fs'
 import { join, dirname } from 'bare-path'
 import { tmpdir } from 'bare-os'
+import { streamOf } from 'mrepo-base-request'
 import { fileURLToPath } from 'bare-url'
-import { summaryOf, follow, serve, mreposOf, createStructure, launch, end, stateOf, start, stop, status, PAGE, site, SHOWN, PORT, HOST, ROOT, STATE, SIDE, COMPONENTS } from '../index.js'
+import { summaryOf, follow, followStream, serve, mreposOf, createStructure, launch, end, stateOf, start, stop, status, PAGE, site, SHOWN, PORT, HOST, ROOT, STATE, SIDE, COMPONENTS } from '../index.js'
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'cli.js')
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -21,13 +22,18 @@ const alive = pid => { try { os.kill(pid, 0); return true } catch { return false
 
 // A completed record as an outbox folder holds it: its envelope, the
 // record as sent, its completed form.
-const KEYS = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444']
+// (its offset: its identity, its name in the folder, 13 digits)
+const KEYS = ['1795312345600', '1795312345601', '1795312345602', '1795312345603']
 function record (n, { command = ['haicc', 'host', 'crud/read', '.'], sent = `2026-11-16T10:00:0${n}.000Z`, done = `2026-11-16T10:00:0${n}.250Z`, error = null, log = null } = {}) {
   const form = { command, protocol: 'haicc', action: 'goto', uri: ['main', 'host'], args: command.slice(2), log: log ?? [{ level: 'info', event: 'request.sent', to: 'host', mrepo: 'local/host' }, { level: 'info', event: 'request.metrics', ok: true, ms: 12 }], ...(error ? { error } : { output: [] }) }
-  return { topic: '/outbox', key: KEYS[n], timestamp: done, headers: {}, value: { topic: '/haicc/terminal', key: KEYS[n], timestamp: sent, headers: {}, value: form } }
+  return { topic: '/outbox', offset: Number(KEYS[n]), timestamp: done, headers: {}, value: { topic: '/haicc/terminal', offset: Number(KEYS[n]), timestamp: sent, headers: {}, value: form } }
 }
 // (written whole, renamed into place, as an mrepo writes its outbox folder)
-function drop (folder, rec) {
+// into an outbox, a streaming folder: under its offset, in its buckets
+const drop = (folder, rec) => streamOf(folder).put(rec.offset, rec)
+// into a queue beside an mrepo (a component's side box): a keyed record, flat
+const keyed = n => ({ ...record(n), key: KEYS[n] })
+function queue (folder, rec) {
   writeFileSync(join(folder, `${rec.key}.tmp`), JSON.stringify(rec))
   renameSync(join(folder, `${rec.key}.tmp`), join(folder, `${rec.key}.json`))
 }
@@ -51,24 +57,24 @@ test('a completed record summed up in a line', (t) => {
 test('a folder of records followed: what is there, the oldest first; then each that arrives, once', async (t) => {
   const folder = mkdtempSync(join(tmpdir(), 'splectral-follow-'))
   try {
-    drop(folder, record(2))
-    drop(folder, record(1))
-    writeFileSync(join(folder, 'layer.json'), JSON.stringify({ mode: 'atomic' }))
+    queue(folder, keyed(2))
+    queue(folder, keyed(1))
+    writeFileSync(join(folder, '.layer.json'), JSON.stringify({ mode: 'atomic' }))
     const got = []
     const f = follow(folder, (envelope, file) => got.push([envelope.key ?? 'layer', file]), { every: 100 })
     t.alike(got.map(g => g[0]), [KEYS[1], KEYS[2], 'layer'], 'what is there, by when each was completed (a file without a time last)')
-    drop(folder, record(3))
+    queue(folder, keyed(3))
     t.ok(await until(() => got.length === 4), 'a record that arrives: taken')
     t.alike(got[3], [KEYS[3], `${KEYS[3]}.json`], 'with its file')
     writeFileSync(join(folder, 'half.json'), '{"topic":')
     await wait(300)
     t.is(got.length, 4, 'a file that is not whole: not taken')
-    writeFileSync(join(folder, 'half.json'), JSON.stringify(record(0)))
+    writeFileSync(join(folder, 'half.json'), JSON.stringify(keyed(0)))
     t.ok(await until(() => got.length === 5), 'whole now: taken')
     await wait(300)
     t.is(got.length, 5, 'each once')
     f.stop()
-    drop(folder, { ...record(1), key: '55555555-5555-4555-8555-555555555555' })
+    queue(folder, { ...record(1), key: '55555555-5555-4555-8555-555555555555' })
     await wait(300)
     t.is(got.length, 5, 'stopped: nothing more')
   } finally { rmSync(folder, { recursive: true, force: true }) }
@@ -77,9 +83,9 @@ test('a folder of records followed: what is there, the oldest first; then each t
 // A completed record with an output, sent on through the mrepos given.
 let n = 0
 function done (through, output, error = null) {
-  const key = `aaaaaaaa-aaaa-4aaa-8aaa-${String(++n).padStart(12, '0')}`
+  const offset = 1795312346000 + (++n)
   const form = { command: ['x'], log: through.map(mrepo => ({ event: 'request.sent', mrepo })), ...(error ? { error } : { output }) }
-  return { topic: '/outbox', key, timestamp: `2026-11-16T11:00:${String(n).padStart(2, '0')}.000Z`, headers: {}, value: { topic: '/haicc/terminal', key, timestamp: `2026-11-16T11:00:${String(n).padStart(2, '0')}.000Z`, headers: {}, value: form } }
+  return { topic: '/outbox', offset, timestamp: `2026-11-16T11:00:${String(n).padStart(2, '0')}.000Z`, headers: {}, value: { topic: '/haicc/terminal', offset, timestamp: `2026-11-16T11:00:${String(n).padStart(2, '0')}.000Z`, headers: {}, value: form } }
 }
 
 test('the install folded from its completed records: its mrepos a tree, each with its state; a swarm node one node, its container part of it', (t) => {
@@ -187,6 +193,8 @@ test('the server: the site, its own page, the lines, one record whole, each new 
     t.ok(await until(() => s.clients() === 2), 'a second stream open')
     const deployed = record(0, { command: ['boot/deploy', 'host', 'haiccing/base-component-haicc'], log: [], done: '2026-11-16T10:00:09.000Z' })
     deployed.value.value.output = { deployed: 'host', mrepo: 'local/host', package: 'haiccing/base-component-haicc' }
+    // (arrived after the others: an offset past theirs)
+    deployed.offset = deployed.value.offset = Number(KEYS[3]) + 1
     drop(folder, deployed)
     t.ok(await until(() => structures.length === 1), 'a record that changes the structure: the structure streamed, an event of its own')
     t.alike([structures[0].changed, structures[0].nodes.map(x => x.uri)], ['local/host', ['local/boot', 'local/host']], 'what changed, and the tree now')
@@ -303,12 +311,12 @@ test('a component: a page asked through its Splectral inbox, its data request ru
   const put = (folder, key, value) => { writeFileSync(join(folder, `${key}.json.new`), JSON.stringify(value)); renameSync(join(folder, `${key}.json.new`), join(folder, `${key}.json`)) }
   // the root mrepo, as far as the test goes: a command in, its completed form out
   const asked = []
-  const root = follow(join(boot, 'inbox'), (envelope) => {
+  const root = followStream(join(boot, 'inbox'), (envelope) => {
     const core = envelope.value
     asked.push({ topic: envelope.topic, parts: core.value, trigger: core.headers.trigger })
     // (the registry consulted: haicc/mrepos <xpath>, its mrepos and where they are)
     const output = core.value[0] === 'haicc/mrepos' ? [{ uri: 'local/docs', position: 'workbench/docs', package: 'haiccing/base-component-docs', running: true }, { uri: 'local/lost', position: null, package: null, running: false }].filter(m => m.uri === core.value[1]) : { page: '# Validation\n\nBefore every commit.' }
-    put(join(boot, 'outbox'), core.key, { topic: core.topic, key: core.key, timestamp: new Date().toISOString(), headers: {}, value: { ...core, value: { command: core.value, output } } })
+    streamOf(join(boot, 'outbox')).put(core.offset, { topic: core.topic, offset: core.offset, timestamp: new Date().toISOString(), headers: {}, value: { ...core, value: { command: core.value, output } } })
   }, { every: 200 })
   // the component's renderer, as far as the test goes: a page asked, data asked for it, the page answered
   const pages = []

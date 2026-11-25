@@ -1,10 +1,10 @@
 # build
 
-Builds an mrepo from its structure: a folder laid out by layers, a `layer.json` at each leaf.
+Builds an mrepo from its structure: a folder laid out by layers, a `.layer.json` at each leaf.
 
 The repository is written on the filesystem storage, p2p-git's hybrid with
 every layer on disk: one orphan branch a leaf, its files one commit,
-`layer.json` among them. The inbox's and the outbox's folders are made.
+`.layer.json` among them. The inbox's and the outbox's folders are made.
 
 ## Signature
 

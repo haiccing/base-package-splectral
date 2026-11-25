@@ -36,7 +36,7 @@ export async function install (exec, { store, sources, target, dir, uri, laid = 
   try {
     const { list } = await exec.step('lay', r => ({ package: target, packages: r.list.length }), async () => lay({ store, sources, target, into: tmp }))
     // Its identity, in its runtime layer (where it has one): its unique URI.
-    if (existsSync(join(tmp, 'runtime', 'layer.json'))) writeFileSync(join(tmp, 'runtime', 'mrepo.json'), JSON.stringify({ uri }, null, 2) + '\n')
+    if (existsSync(join(tmp, 'runtime', '.layer.json'))) writeFileSync(join(tmp, 'runtime', 'mrepo.json'), JSON.stringify({ uri }, null, 2) + '\n')
     if (laid) laid(tmp)
     mkdirSync(dirname(dir), { recursive: true })
     const { layers } = await exec.step('build', r => ({ dir, layers: Object.keys(r.layers).length }), () => build({ from: tmp, dir, setting: false }))

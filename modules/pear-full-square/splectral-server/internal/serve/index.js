@@ -5,7 +5,7 @@ import http from 'bare-http1'
 import { readFileSync, existsSync } from 'bare-fs'
 import { join, dirname } from 'bare-path'
 import { URL } from 'bare-url'
-import { summaryOf, follow } from '../records/index.js'
+import { summaryOf, followStream } from '../records/index.js'
 import { createStructure } from '../structure/index.js'
 import { PAGE } from '../page/index.js'
 import { site } from '../site/index.js'
@@ -18,7 +18,7 @@ export const HOST = '127.0.0.1'
 export const ROOT = 'local/boot'
 // The server's own paths: no component is named so.
 export const RESERVED = ['install', 'records', 'record', 'structure', 'stream', 'index.html']
-const KEY = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/
+const KEY = /^\d{13}$/
 
 // The server listening: on the port asked for; that one taken (and
 // another allowed): on a free one.
@@ -43,7 +43,7 @@ export async function serve ({ outbox, dir = null, root = ROOT, port = PORT, hos
   const lines = []
   const files = new Map()
   const clients = new Set()
-  const following = follow(outbox, (envelope, file) => {
+  const following = followStream(outbox, (envelope, file) => {
     const line = summaryOf(envelope)
     if (!line) return
     const changed = structure.apply(envelope)

@@ -2,7 +2,7 @@
 
 The package's part of the structure: the Splectral mrepo's list of packages and its runtime config.
 
-- **Its packages** (`packages/layer.json`): the runtime, the info
+- **Its packages** (`packages/.layer.json`): the runtime, the info
   protocol, the protocol protocol, the service protocol, and this
   package last.
 - **Its runtime config**: the service state and the hooks, below.

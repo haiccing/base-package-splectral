@@ -2,6 +2,8 @@
 // followed (README.md beside it).
 import fs, { readdirSync, readFileSync, existsSync } from 'bare-fs'
 import { join } from 'bare-path'
+import { streamOf, nameOf } from 'mrepo-base-request'
+import { placeOf } from 'mycelium-container-document'
 
 // A completed record as an outbox holds it: its envelope, in it the
 // record as it was sent (who asked, when), in that its completed form.
@@ -14,7 +16,7 @@ export function summaryOf (envelope) {
   const log = Array.isArray(form.log) ? form.log : []
   const ms = Date.parse(envelope.timestamp) - Date.parse(core.timestamp)
   return {
-    key: envelope.key,
+    key: envelope.offset != null ? nameOf(envelope.offset) : envelope.key,
     // when it was sent and when it was completed; how long between
     sent: core.timestamp,
     done: envelope.timestamp,
@@ -30,7 +32,37 @@ export function summaryOf (envelope) {
   }
 }
 
-// A folder of records followed: each(envelope, file) for every record
+// An mrepo's outbox folder followed, a streaming folder: each(envelope,
+// file) for every record there, in its natural order, the oldest first,
+// then for each that arrives: what came after the last one seen, a
+// pointer. file: its place below the folder. -> { stop }
+export function followStream (folder, each, { every = 2000 } = {}) {
+  const box = streamOf(folder)
+  let pointer = null
+  let stopped = false
+  const look = () => {
+    if (stopped || !existsSync(folder)) return
+    // (from the latest back to the pointer: only what is new is walked)
+    for (const offset of box.list({ after: pointer }).reverse()) {
+      let envelope = null
+      // catch: not whole yet: looked at again the next time, nothing after it before it
+      try { envelope = box.read(offset) } catch { return }
+      pointer = offset
+      each(envelope, `${placeOf(offset, box.buckets)}.json`)
+    }
+  }
+  look()
+  let watcher = null
+  // catch: a folder that cannot be watched is looked at instead, every `every`
+  try { watcher = fs.watch(folder, { recursive: true }, () => look()); watcher.on('error', () => {}) } catch {}
+  // (its records arrive in folders below it: where it is not told of them,
+  // it looks often; a look past the pointer costs what is new)
+  const timer = setInterval(look, Math.min(every, 250))
+  return { stop: () => { stopped = true; clearInterval(timer); if (watcher) watcher.close() } }
+}
+
+// A folder of records followed (a queue beside an mrepo: a component's
+// side box): each(envelope, file) for every record
 // there, the oldest first, then for each that arrives; a file once. JSON;
 // AVRO too (.avro) when given its decoder (avro: bytes -> envelope).
 // -> { stop }

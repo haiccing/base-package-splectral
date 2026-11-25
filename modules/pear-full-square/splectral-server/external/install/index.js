@@ -53,8 +53,8 @@ export async function install (exec, { uri, args: [component] = [] }) {
   if (!org) throw new Error(`not a package of an organisation: ${component} (<org>/<package>)`)
   if (org !== ORG) throw new Error(`not a Splectral component: ${component} (a package of the ${ORG} organisation)`)
   fetch({ store, sources, pkg: component })
-  const listed = structureOf({ store, pkg: component })['packages/layer.json']
-  if (!listed) throw new Error(`${component} lists no packages (mrepo/packages/layer.json)`)
+  const listed = structureOf({ store, pkg: component })['packages/.layer.json']
+  if (!listed) throw new Error(`${component} lists no packages (mrepo/packages/.layer.json)`)
   const list = JSON.parse(listed.toString()).packages ?? []
   if (list.at(-1) !== component) throw new Error(`${component}: its list does not end with itself`)
   const foreign = list.filter(p => p.split('/')[0] !== org)

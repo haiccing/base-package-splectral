@@ -4,10 +4,10 @@ import { join } from 'bare-path'
 import { p2pgitBackend, writer } from 'mycelium-git'
 import { gitdirOf, viewOf, SETTING } from 'mrepo-base-request'
 
-const CONFIG = 'layer.json'
+const CONFIG = '.layer.json'
 const author = { name: 'mrepo-build', email: 'mrepo-build@localhost' }
 
-// The leaves: each folder holding a layer.json, by its path (the layer's name).
+// The leaves: each folder holding a .layer.json, by its path (the layer's name).
 function leaves (root, rel = '') {
   const dir = join(root, rel)
   if (existsSync(join(dir, CONFIG))) return [rel]

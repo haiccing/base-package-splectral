@@ -1,6 +1,6 @@
 # records
 
-Sums a completed record up in a line, and follows a folder of them.
+Sums a completed record up in a line, and follows an outbox or a queue of them.
 
 A record in an outbox folder is an envelope; in it the record as it was
 sent, and in that the request's completed form: its command, its output
@@ -9,7 +9,12 @@ or its error, its log.
 ## Signature
 
 - `summaryOf(envelope)`: a record's line.
-- `follow(folder, each, { every, avro })`: `each(envelope, file)` for
+- `followStream(folder, each, { every })`: an mrepo's outbox folder, a
+  streaming folder: `each(envelope, file)` for every record there in
+  its natural order, the oldest first, then for each that arrives: what
+  came after the last one seen, a pointer.
+- `follow(folder, each, { every, avro })`: a queue beside an mrepo (a
+  component's side box): `each(envelope, file)` for
   every record in the folder, the oldest first, then for each that
   arrives. JSON records (`.json`); with `avro`, a decoder (bytes to the
   envelope), AVRO ones too (`.avro`).
@@ -26,7 +31,7 @@ or its error, its log.
   - `through`: the mrepos it was sent on to, in order, by unique URI:
     its log's `request.sent` entries. None: executed where it arrived.
   - `changed`: how many paths it changed, over all of them.
-- `follow`: `{ stop }`.
+- `follow`, `followStream`: `{ stop }`.
 
 ## Design
 

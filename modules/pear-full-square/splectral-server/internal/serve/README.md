@@ -38,7 +38,7 @@ It cannot listen there: `not served at <host>:<port>`.
   with the node that changed.
 - The structure is folded from every record, also those no longer among
   the lines held.
-- A record is served whole from its file, by its key: only keys of
+- A record is served whole from its file, by its offset: only those of
   lines it holds, so no path is taken from a request.
 
 ## Also exported

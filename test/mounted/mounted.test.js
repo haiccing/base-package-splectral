@@ -14,6 +14,7 @@ import { readFileSync, readdirSync, existsSync, mkdtempSync, mkdirSync, writeFil
 import { join, dirname } from '../../modules/node_modules/bare-path/index.js'
 import { fileURLToPath } from '../../modules/node_modules/bare-url/index.js'
 import * as mounted from '../../protocol.js'
+import { streamOf } from '../../modules/pear-full-square/mrepo-base-request/index.js'
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const json = (...p) => JSON.parse(readFileSync(join(pkg, ...p), 'utf8'))
@@ -73,7 +74,7 @@ const brought = {}
 for (const f of existsSync(hooksDir) ? readdirSync(hooksDir).sort() : []) readFileSync(join(hooksDir, f), 'utf8').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#')).forEach((l, i) => { brought[`${f.replace(/\.haicc$/, '')}/${i + 1}`] = l.split(/\s+/) })
 
 test('the mrepo it defines: its list of packages, itself last; its hooks, file by file; the state it starts in', (t) => {
-  t.alike(json('mrepo', 'packages', 'layer.json').packages, [
+  t.alike(json('mrepo', 'packages', '.layer.json').packages, [
     'haiccing/base-package-runtime',
     'haiccing/base-package-info',
     'haiccing/base-package-help',
@@ -132,8 +133,9 @@ test('the actions: nothing running; what start refuses; its server started from 
     mkdirSync(outbox, { recursive: true })
     await t.exception(act('start', exec), /no server to start: haiccing\/base-package-splectral is not among the mrepo's packages/, 'its bundle not in the mrepo\'s packages')
     // a completed record there, as the root mrepo writes its outbox folder
-    const key = '11111111-1111-4111-8111-111111111111'
-    writeFileSync(join(outbox, `${key}.json`), JSON.stringify({ topic: '/outbox', key, timestamp: '2026-11-16T10:00:01.250Z', headers: {}, value: { topic: '/haicc/terminal', key, timestamp: '2026-11-16T10:00:01.000Z', headers: {}, value: { command: ['haicc', 'host', 'service/start'], protocol: 'haicc', action: 'goto', uri: ['main', 'host'], args: ['service/start'], log: [{ event: 'request.sent', mrepo: 'local/host' }], output: { service: 'started', state: 'started' } } } }))
+    // (under its offset, in its buckets: a streaming folder)
+    const offset = 1795312345678
+    streamOf(outbox).put(offset, { topic: '/outbox', offset, timestamp: '2026-11-16T10:00:01.250Z', headers: {}, value: { topic: '/haicc/terminal', offset, timestamp: '2026-11-16T10:00:01.000Z', headers: {}, value: { command: ['haicc', 'host', 'service/start'], protocol: 'haicc', action: 'goto', uri: ['main', 'host'], args: ['service/start'], log: [{ event: 'request.sent', mrepo: 'local/host' }], output: { service: 'started', state: 'started' } } } })
     // started from the package's own program: run.js, as its bundle's /run entry runs it
     const s = await act('start', exec, { args: ['0'] }, { program: join(pkg, 'run.js') })
     pid = s.pid

@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, cpSync, rmSync, readFileSync } from 'bare-fs'
 import { join, dirname, relative } from 'bare-path'
 import crypto from 'bare-crypto'
 import { spawnSync } from 'bare-subprocess'
-import { record, wrap, guid, inboxOf } from 'mrepo-base-request'
+import { record, drop, answered } from 'mrepo-base-request'
 
 // Where the pairs are, under the work folder, by the child's unique URI:
 // each the container's haicc home, mounted into it.
@@ -52,18 +52,13 @@ export function pairOf (exec, c) {
 // -> its completed form; throws on none in time
 // log: none (the caller's step says what was sent and what came back)
 async function platform (p, parts, { timeout = WAIT } = {}) {
-  const key = guid()
   // (a reply topic: a request without one is answered to nobody, its
   // completed form not written to the outbox)
-  inboxOf(p.boot).write(key, wrap(`/${BOOT_URI}/inbox`, { ...record(REPLY, parts, key), headers: { trigger: 'external' } }))
-  const back = join(p.boot, 'outbox', `${key}.json`)
-  // time: the wait for another install's answer, bounded
-  for (const end = Date.now() + timeout * 1000; !existsSync(back);) {
-    // time: past the bound, said
-    if (Date.now() >= end) throw new Error(`the container's platform did not answer in ${timeout} s: ${parts.join(' ')}`)
-    await new Promise(resolve => setTimeout(resolve, 200))
-  }
-  return JSON.parse(readFileSync(back, 'utf8')).value.value
+  const offset = drop(p.boot, BOOT_URI, { ...record(REPLY, parts), headers: { trigger: 'external' } })
+  // time: the wait for another install's answer, bounded; past the bound, said
+  const back = await answered(p.boot, offset, { timeout })
+  if (back === null) throw new Error(`the container's platform did not answer in ${timeout} s: ${parts.join(' ')}`)
+  return JSON.parse(back).value.value
 }
 // A platform command whose failure is the action's
 // log: none (as platform)

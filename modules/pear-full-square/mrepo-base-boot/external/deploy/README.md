@@ -2,7 +2,7 @@
 
 Builds a child mrepo inside its parent from a target package, links its packages and starts its runtime.
 
-The target package's `mrepo/packages/layer.json` lists the packages the
+The target package's `mrepo/packages/.layer.json` lists the packages the
 child is made of, in order. Each is fetched into the work folder's store,
 which the parent's packages manifest names. Their `mrepo/` parts are laid
 in, in that order, and the child is built at its place in the work

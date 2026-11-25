@@ -3,7 +3,7 @@
 // beside it).
 import fs, { existsSync, readdirSync, readFileSync, mkdirSync, rmSync } from 'bare-fs'
 import { join } from 'bare-path'
-import { record, wrap, guid, inboxOf } from 'mrepo-base-request'
+import { record, guid, queueOf, keyed, drop, answered } from 'mrepo-base-request'
 import { programState } from 'mrepo-base-runtime'
 import { documents } from 'mycelium-container-document'
 import { registry } from 'mycelium-value-avro'
@@ -60,9 +60,9 @@ export function createComponents ({ dir, boot, root, mrepos = () => ({ version: 
   // install's registry (its record's `schemas`): AVRO (internal/typed);
   // else JSON, as every other record.
   const back = (rec, key, form) => {
-    const envelope = wrap(`/${rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, form, key) })
+    const envelope = keyed(`/${rec.mrepo}/${SIDE}/inbox`, record(TOPIC, form), key)
     if (typeof form.as === 'string' && rec.schemas) return typedBox(rec).write(key, envelope)
-    inboxOf(join(rec.folder, SIDE)).write(key, envelope)
+    queueOf(join(rec.folder, SIDE, 'inbox')).write(key, envelope)
   }
   const take = (at, rec) => (envelope, file) => {
     const form = envelope?.value?.value
@@ -119,7 +119,7 @@ export function createComponents ({ dir, boot, root, mrepos = () => ({ version: 
       if (program && !programState(join(c.rec.folder, SIDE, 'packages', `${program}.state.json`))) return { status: 503, form: { error: `not running: ${at} (its service not started? haicc splectral/${at} service/start)` } }
       const key = guid()
       const answered = new Promise(resolve => pending.set(key, resolve))
-      inboxOf(join(c.rec.folder, SIDE)).write(key, wrap(`/${c.rec.mrepo}/${SIDE}/inbox`, { ...record(TOPIC, { request: 'page', path, query }, key) }))
+      queueOf(join(c.rec.folder, SIDE, 'inbox')).write(key, keyed(`/${c.rec.mrepo}/${SIDE}/inbox`, record(TOPIC, { request: 'page', path, query }), key))
       let t = null
       const late = new Promise(resolve => { t = setTimeout(() => resolve(null), wait) })
       const form = await Promise.race([answered, late])
@@ -149,21 +149,11 @@ export async function ask ({ boot, root, form, timeout = 120 }) {
   const command = Array.isArray(form.command) ? form.command : []
   if (!command.length) return { error: 'a data request names no command' }
   const parts = at === '.' ? command : ['haicc', at, ...command]
-  const key = guid()
-  inboxOf(boot).write(key, wrap(`/${root}/inbox`, { ...record(TOPIC, parts, key), headers: { trigger: 'external', by: 'splectral' } }))
-  const back = join(boot, 'outbox', `${key}.json`)
-  let arrived = () => {}
-  let watcher = null
-  // catch: a folder that cannot be watched is looked at instead, every 200 ms
-  try { watcher = fs.watch(join(boot, 'outbox'), () => arrived()); watcher.on('error', () => {}) } catch {}
-  try {
-    for (const end = Date.now() + timeout * 1000; !existsSync(back);) {
-      if (Date.now() >= end) return { error: `no response in ${timeout} s: ${parts.join(' ')}` }
-      await new Promise(resolve => { const t = setTimeout(resolve, 200); arrived = () => { clearTimeout(t); resolve() } })
-    }
-    const text = readFileSync(back, 'utf8')
-    const done = JSON.parse(text).value.value
-    const raw = form.raw === true ? { record: text } : {}
-    return 'error' in done ? { error: done.error, ...raw } : { output: done.output ?? null, ...raw }
-  } finally { watcher?.close() }
+  // dropped as everyone drops a record; its answer under the same offset
+  const offset = drop(boot, root, { ...record(TOPIC, parts), headers: { trigger: 'external', by: 'splectral' } })
+  const text = await answered(boot, offset, { timeout })
+  if (text === null) return { error: `no response in ${timeout} s: ${parts.join(' ')}` }
+  const done = JSON.parse(text).value.value
+  const raw = form.raw === true ? { record: text } : {}
+  return 'error' in done ? { error: done.error, ...raw } : { output: done.output ?? null, ...raw }
 }

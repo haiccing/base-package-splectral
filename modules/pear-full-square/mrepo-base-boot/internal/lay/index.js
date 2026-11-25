@@ -6,13 +6,13 @@ import { fetch, structureOf } from '../fetch/index.js'
 
 // Runtime config: what a package drops into the runtime layer (its hooks,
 // its service state, ...), not the layer's own definition.
-export const isRuntimeConfig = p => p.startsWith('runtime/') && p !== 'runtime/layer.json'
+export const isRuntimeConfig = p => p.startsWith('runtime/') && p !== 'runtime/.layer.json'
 
 export function lay ({ store, sources, target, into }) {
   // The target's list, in order, from its own structure.
   fetch({ store, sources, pkg: target })
-  const listed = structureOf({ store, pkg: target })['packages/layer.json']
-  if (!listed) throw new Error(`${target} lists no packages (mrepo/packages/layer.json)`)
+  const listed = structureOf({ store, pkg: target })['packages/.layer.json']
+  if (!listed) throw new Error(`${target} lists no packages (mrepo/packages/.layer.json)`)
   const parsed = JSON.parse(listed.toString())
   const list = parsed.packages || []
   // The package that defines the mrepo: the last in the list.
