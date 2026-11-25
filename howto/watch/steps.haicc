@@ -1,0 +1,19 @@
+# step: deployed, brought into service by its commission: the server started
+. boot/deploy splectral haiccing/base-package-splectral
+# expect: "deployed":"splectral"
+# step: where the page is: http://127.0.0.1:4400, or another port when taken
+splectral splectral/status
+# expect: "url":"http://127.0.0.1:
+# step: open it in a browser on this machine, then send commands and see each arrive
+. boot/deploy host haiccing/base-component-haicc
+# expect: "deployed":"host"
+# step: another port: stopped first (a running server keeps its port)
+splectral splectral/stop .
+# expect: "stopped"
+splectral splectral/start . 4401
+# expect: "url":"http://127.0.0.1:4401"
+# step: ended
+splectral service/stop
+# expect: "state":"initialised"
+. boot/teardown splectral
+# expect: "tornDown":"splectral"
